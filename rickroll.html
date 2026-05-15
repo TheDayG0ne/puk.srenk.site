@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎵 NEVER GONNA GIVE YOU UP — 8-BIT EDITION</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --pink: #ff0080;
+      --cyan: #00ffff;
+      --green: #00ff88;
+      --yellow: #ffff00;
+      --dark: #0a0010;
+    }
+
+    body {
+      background: var(--dark);
+      color: #fff;
+      font-family: 'Press Start 2P', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* CRT scanlines */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 3px,
+        rgba(0,0,0,0.18) 3px,
+        rgba(0,0,0,0.18) 4px
+      );
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    /* Stars BG */
+    .stars {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .star {
+      position: absolute;
+      background: #fff;
+      border-radius: 50%;
+      animation: twinkle var(--d, 2s) infinite alternate;
+    }
+    @keyframes twinkle { from { opacity: 0.1; } to { opacity: 1; } }
+
+    /* Main container */
+    .container {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 24px 16px;
+      max-width: 600px;
+      width: 100%;
+    }
+
+    /* Title */
+    .title {
+      font-size: clamp(10px, 2.5vw, 16px);
+      color: var(--pink);
+      text-align: center;
+      animation: rainbow 2s linear infinite;
+      text-shadow: 0 0 20px var(--pink);
+    }
+    .subtitle {
+      font-size: clamp(7px, 1.5vw, 10px);
+      color: var(--cyan);
+      text-align: center;
+      animation: blink 1s step-end infinite;
+    }
+
+    /* GIF frame */
+    .gif-wrap {
+      position: relative;
+      border: 4px solid var(--pink);
+      box-shadow: 0 0 30px var(--pink), inset 0 0 20px rgba(255,0,128,0.1);
+      image-rendering: pixelated;
+      background: #000;
+    }
+    .gif-wrap img {
+      display: block;
+      width: 280px;
+      height: 280px;
+      object-fit: cover;
+      image-rendering: pixelated;
+    }
+    .gif-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.7);
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .gif-overlay:hover { background: rgba(0,0,0,0.5); }
+    .gif-overlay.hidden { display: none; }
+    .play-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 14px;
+      color: #fff;
+      background: var(--pink);
+      border: 3px solid #fff;
+      padding: 16px 24px;
+      cursor: pointer;
+      text-transform: uppercase;
+      animation: pulse 1s ease-in-out infinite;
+      box-shadow: 0 0 20px var(--pink);
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 20px var(--pink); }
+      50% { transform: scale(1.05); box-shadow: 0 0 35px var(--pink); }
+    }
+
+    /* Player bar */
+    .player {
+      width: 100%;
+      background: #111;
+      border: 3px solid var(--cyan);
+      padding: 12px 16px;
+      box-shadow: 0 0 15px var(--cyan);
+    }
+    .now-playing {
+      font-size: 8px;
+      color: var(--green);
+      margin-bottom: 8px;
+    }
+    .track-name {
+      font-size: clamp(8px, 1.8vw, 11px);
+      color: #fff;
+      margin-bottom: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .progress-wrap {
+      background: #222;
+      height: 8px;
+      border: 1px solid #555;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--pink), var(--cyan));
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+    .controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .ctrl-btn {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      padding: 6px 12px;
+      border: 2px solid;
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .ctrl-btn.play  { border-color: var(--green); color: var(--green); }
+    .ctrl-btn.stop  { border-color: var(--pink);  color: var(--pink); }
+    .ctrl-btn.play:hover  { background: var(--green); color: #000; }
+    .ctrl-btn.stop:hover  { background: var(--pink);  color: #fff; }
+    .vol-label { font-size: 7px; color: #888; }
+    .vol-slider {
+      -webkit-appearance: none;
+      width: 80px;
+      height: 6px;
+      background: #333;
+      border: 1px solid #555;
+      cursor: pointer;
+    }
+    .vol-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      background: var(--cyan);
+      cursor: pointer;
+    }
+
+    /* Lyrics */
+    .lyrics-wrap {
+      width: 100%;
+      background: #000;
+      border: 3px solid #333;
+      height: 90px;
+      overflow: hidden;
+      position: relative;
+    }
+    .lyrics-inner {
+      position: absolute;
+      width: 100%;
+      animation: scroll-lyrics 32s linear infinite;
+    }
+    .lyric-line {
+      font-size: 9px;
+      padding: 10px 14px;
+      color: #555;
+      line-height: 2.2;
+      transition: color 0.3s;
+    }
+    .lyric-line.active { color: var(--yellow); text-shadow: 0 0 8px var(--yellow); }
+    @keyframes scroll-lyrics {
+      0%   { transform: translateY(90px); }
+      100% { transform: translateY(-100%); }
+    }
+
+    /* Footer */
+    .footer {
+      font-size: 7px;
+      color: #333;
+      text-align: center;
+      line-height: 2;
+    }
+    .footer a { color: #555; text-decoration: none; }
+    .footer a:hover { color: var(--cyan); }
+
+    /* Animations */
+    @keyframes rainbow {
+      0%   { color: #ff0080; text-shadow: 0 0 20px #ff0080; }
+      25%  { color: #ffff00; text-shadow: 0 0 20px #ffff00; }
+      50%  { color: #00ff88; text-shadow: 0 0 20px #00ff88; }
+      75%  { color: #00ffff; text-shadow: 0 0 20px #00ffff; }
+      100% { color: #ff0080; text-shadow: 0 0 20px #ff0080; }
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* Floating notes */
+    .note {
+      position: fixed;
+      font-size: 20px;
+      animation: floatUp 4s ease-in forwards;
+      pointer-events: none;
+      z-index: 50;
+    }
+    @keyframes floatUp {
+      0%   { opacity: 1; transform: translateY(0) rotate(0deg); }
+      100% { opacity: 0; transform: translateY(-200px) rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<div class="container">
+  <div class="title">★ NEVER GONNA GIVE YOU UP ★</div>
+  <div class="subtitle">♪ 8-BIT EDITION — RICK ASTLEY, 1987 ♪</div>
+
+  <!-- GIF -->
+  <div class="gif-wrap">
+    <img
+      src="https://media.giphy.com/media/3oEjHAUOqG3lSS0f1C/giphy.gif"
+      alt="Rick Astley 8-bit"
+      id="rick-gif"
+    >
+    <div class="gif-overlay" id="gif-overlay" onclick="startRickroll()">
+      <button class="play-btn">▶ ИГРАТЬ</button>
+    </div>
+  </div>
+
+  <!-- Player -->
+  <div class="player">
+    <div class="now-playing">♪ NOW PLAYING:</div>
+    <div class="track-name" id="track-marquee">Rick Astley — Never Gonna Give You Up (8-bit)</div>
+    <div class="progress-wrap"><div class="progress-bar" id="prog-bar"></div></div>
+    <div class="controls">
+      <button class="ctrl-btn play" onclick="startRickroll()">▶ PLAY</button>
+      <button class="ctrl-btn stop" onclick="stopAll()">■ STOP</button>
+      <span class="vol-label">VOL:</span>
+      <input type="range" class="vol-slider" id="vol-slider" min="0" max="100" value="40" oninput="setVol(this.value)">
+    </div>
+  </div>
+
+  <!-- Lyrics -->
+  <div class="lyrics-wrap">
+    <div class="lyrics-inner" id="lyrics">
+      <div class="lyric-line">We're no strangers to love</div>
+      <div class="lyric-line">You know the rules and so do I</div>
+      <div class="lyric-line">A full commitment's what I'm thinking of</div>
+      <div class="lyric-line">You wouldn't get this from any other guy</div>
+      <div class="lyric-line">I just wanna tell you how I'm feeling</div>
+      <div class="lyric-line">Gotta make you understand</div>
+      <div class="lyric-line active">♪ Never gonna give you up</div>
+      <div class="lyric-line active">♪ Never gonna let you down</div>
+      <div class="lyric-line active">♪ Never gonna run around and desert you</div>
+      <div class="lyric-line active">♪ Never gonna make you cry</div>
+      <div class="lyric-line active">♪ Never gonna say goodbye</div>
+      <div class="lyric-line active">♪ Never gonna tell a lie and hurt you</div>
+      <div class="lyric-line">We've known each other for so long</div>
+      <div class="lyric-line">Your heart's been aching but you're too shy to say it</div>
+      <div class="lyric-line">Inside we both know what's been going on</div>
+      <div class="lyric-line">We know the game and we're gonna play it</div>
+      <div class="lyric-line active">♪ Never gonna give you up</div>
+      <div class="lyric-line active">♪ Never gonna let you down</div>
+      <div class="lyric-line active">♪ Never gonna run around and desert you</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    💀 Ты попался. Это был рикролл.<br>
+    Разработал <a href="https://thedayg0ne.ru" target="_blank">TheDayG0ne</a> на коленке по приколу ·
+    <a href="https://github.com/TheDayG0ne" target="_blank">GitHub</a><br>
+    <a href="/">← вернуться на главную</a>
+  </div>
+</div>
+
+<script>
+// ── Stars ──────────────────────────────────────
+const starsEl = document.getElementById('stars');
+for (let i = 0; i < 80; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  const sz = Math.random() * 3 + 1;
+  s.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--d:${(Math.random()*3+1).toFixed(1)}s;animation-delay:${(Math.random()*3).toFixed(1)}s`;
+  starsEl.appendChild(s);
+}
+
+// ── Audio ──────────────────────────────────────
+let _rrCtx = null, _rrNodes = [], _rrPlaying = false, _rrTimer = null, _masterGain = null;
+
+const mel = [[5538,554.37,692],[6231,622.25,692],[6923,415.3,462],[7385,622.25,692],[8077,698.46,692],[8769,830.61,115],[8885,739.99,115],[9000,698.46,115],[9115,554.37,808],[9231,349.23,577],[9923,622.25,692],[10615,415.3,1615],[11769,349.23,1038],[12462,830.61,115],[12577,739.99,115],[12692,698.46,115],[12808,554.37,115],[12923,349.23,462],[13615,622.25,692],[14308,415.3,115],[14423,369.99,115],[14538,349.23,115],[14769,622.25,692],[15462,698.46,692],[16154,830.61,115],[16269,739.99,115],[16385,698.46,115],[16500,554.37,808],[16615,349.23,462],[17308,622.25,692],[18000,415.3,1962],[18692,349.23,115],[18923,349.23,1269],[19615,1108.73,115],[19731,1108.73,115],[19846,1108.73,115],[19962,1108.73,115],[20192,1108.73,115],[20308,349.23,1615],[24000,349.23,1615],[25846,415.3,346],[26308,415.3,115],[27692,349.23,1615],[31385,830.61,1846],[33462,698.46,231],[33923,622.25,231],[34385,554.37,231],[35077,466.16,1615],[36462,349.23,231],[36923,415.3,1731],[37615,349.23,231],[38769,466.16,1731],[40615,466.16,231],[40961,466.16,115],[41077,349.23,231],[41308,523.25,1038],[41769,830.61,115],[41885,830.61,115],[42461,1108.73,692],[42923,554.37,231],[43154,1244.51,692],[43846,830.61,462],[44308,1244.51,692],[44769,523.25,231],[45000,1396.91,692],[45692,1661.22,115],[45808,1479.98,115],[45923,1396.91,115],[46038,1108.73,808],[46154,349.23,577],[46846,1244.51,692],[47538,830.61,1615],[48000,523.25,346],[48461,554.37,1038],[48692,349.23,808],[49154,830.61,115],[49269,830.61,115],[49385,1661.22,115],[49500,1479.98,115],[49615,1396.91,115],[49731,1108.73,808],[49846,554.37,346],[50308,554.37,231],[50538,1244.51,692],[51231,830.61,462],[51692,1244.51,692],[52154,622.25,231],[52385,1396.91,692],[52731,523.25,115],[52846,466.16,231],[53077,1661.22,115],[53192,1479.98,115],[53308,1396.91,115],[53423,1108.73,808],[53538,349.23,577],[54231,1244.51,692],[54923,830.61,1962],[55385,523.25,346],[55846,415.3,923],[56538,1108.73,115],[56654,1108.73,115],[56769,1108.73,115],[56885,1108.73,115],[57115,1108.73,115],[57231,349.23,1615],[60923,349.23,1615],[62769,415.3,346],[63231,415.3,115],[63923,349.23,231],[64615,349.23,1615],[68308,830.61,1846],[70385,698.46,231],[70846,622.25,231],[71308,554.37,231],[72000,466.16,1615],[73385,349.23,231],[73846,415.3,1731],[74538,349.23,231],[75692,466.16,1731],[77538,466.16,231],[77885,466.16,115],[78000,349.23,231],[78231,523.25,1038],[78692,830.61,115],[78808,830.61,115],[79385,1108.73,692],[79846,554.37,231],[80077,1244.51,692],[80769,830.61,462],[81231,1244.51,692],[81692,523.25,231],[81923,1396.91,692],[82615,1661.22,115],[82731,1479.98,115],[82846,1396.91,115],[82961,1108.73,808],[83077,349.23,577],[83769,1244.51,692],[84461,830.61,1615],[84923,523.25,346],[85385,554.37,1038],[85615,349.23,808],[86077,830.61,115],[86192,830.61,115],[86308,1661.22,115],[86423,1479.98,115],[86538,1396.91,115],[86654,1108.73,808],[86769,554.37,346],[87231,554.37,231],[87461,1244.51,692],[88154,830.61,462],[88615,1244.51,692],[89077,622.25,231],[89308,1396.91,692],[89654,523.25,115],[89769,466.16,231],[90000,1661.22,115],[90115,1479.98,115],[90231,1396.91,115],[90346,1108.73,808],[90461,349.23,577],[91154,1244.51,692],[91846,830.61,1962],[92308,523.25,346],[92769,415.3,923],[93461,1108.73,115],[93577,1108.73,115],[93692,1108.73,115],[93808,1108.73,115],[94038,1108.73,115],[94154,1108.73,692],[94615,554.37,231],[94846,1244.51,692],[95538,830.61,462],[96000,1244.51,692],[96461,523.25,231],[96692,1396.91,692],[97385,1661.22,115],[97500,1479.98,115],[97615,1396.91,115],[97731,1108.73,808],[97846,349.23,577],[98538,1244.51,692],[99231,830.61,1615],[99692,523.25,346],[100154,554.37,1038],[100385,349.23,808],[100846,830.61,115],[100961,830.61,115],[101077,1661.22,115],[101192,1479.98,115],[101308,1396.91,115],[101423,1108.73,808],[101538,554.37,346],[102000,554.37,231],[102231,1244.51,692],[102923,830.61,462],[103385,1244.51,692],[103846,622.25,231],[104077,1396.91,692],[104423,523.25,115],[104538,466.16,231],[104769,1661.22,115],[104885,1479.98,115],[105000,1396.91,115],[105115,1108.73,808],[105231,349.23,577],[105923,1244.51,692],[106615,830.61,1962],[107077,523.25,346],[107538,415.3,923],[108231,1108.73,115],[108346,1108.73,115],[108461,1108.73,115],[108577,1108.73,115],[108808,1108.73,115],[108923,415.3,1500],[109269,349.23,115],[109615,349.23,115],[109846,349.23,231],[110192,349.23,115],[110423,369.99,115],[110538,349.23,115],[110769,554.37,346],[111000,349.23,115],[111115,554.37,346],[111231,349.23,231],[111461,523.25,346],[112615,415.3,1500],[116308,415.3,1500],[120000,415.3,1500],[129231,349.23,577],[138461,932.33,1846],[140308,1244.51,923],[141231,1396.91,923],[142154,932.33,1846],[145846,1108.73,692],[146538,1244.51,692],[147692,1244.51,692],[148384,1396.91,692],[150231,1244.51,692],[153923,1244.51,692],[155077,1244.51,692],[155769,1396.91,692],[157615,1244.51,692],[161308,1244.51,692],[162461,1244.51,692],[163154,1396.91,692],[165000,1244.51,692],[168692,1244.51,692],[169846,1244.51,692],[170538,1396.91,692],[172384,1244.51,692],[176077,1244.51,692],[177231,1244.51,692],[177923,1396.91,692],[179769,1244.51,692],[183461,1244.51,692],[184615,1244.51,692],[185308,1396.91,692],[187154,1244.51,692],[190846,1244.51,692],[191538,1661.22,462],[192000,1661.22,1731]];
+const bas = [[5538,233.08,577],[5769,116.54,923],[6231,207.65,1038],[7385,207.65,577],[9231,233.08,577],[9462,116.54,923],[9923,207.65,1038],[11077,207.65,577],[12462,233.08,115],[12923,233.08,462],[13154,116.54,923],[13615,207.65,1038],[14769,207.65,462],[16385,116.54,462],[16615,233.08,462],[16846,116.54,923],[17308,207.65,1038],[18692,116.54,462],[18923,233.08,1269],[20308,185.0,1615],[24000,185.0,1615],[27692,185.0,1615],[31385,185.0,1731],[42461,233.08,577],[44308,174.61,462],[46154,233.08,577],[48000,174.61,462],[49846,233.08,577],[51692,174.61,462],[53538,233.08,577],[55846,233.08,1269],[57231,185.0,1615],[60923,185.0,1615],[64615,185.0,1615],[68308,185.0,1731],[79385,233.08,577],[81231,174.61,577],[83077,233.08,577],[84923,174.61,577],[86769,233.08,577],[88615,174.61,577],[90461,233.08,577],[94154,233.08,577],[96000,207.65,577],[97846,233.08,577],[99692,207.65,577],[101538,233.08,577],[103385,207.65,577],[105231,233.08,577],[108923,233.08,231],[112154,138.59,3692],[112500,155.56,3462],[115846,138.59,3692],[116192,155.56,3462],[119538,138.59,3692],[119884,155.56,3462],[123346,155.56,68654],[145846,233.08,577],[147692,174.61,462],[149538,233.08,577],[151384,174.61,462],[153231,233.08,577],[155077,174.61,462],[156923,233.08,577],[160615,233.08,577],[162461,207.65,577],[164308,233.08,577],[166154,207.65,577],[168000,233.08,577],[169846,207.65,577],[171692,233.08,577],[175384,233.08,577],[177231,207.65,577],[179077,233.08,577],[180923,207.65,577],[182769,233.08,577],[184615,207.65,577],[186461,233.08,577],[190154,1396.91,346],[190846,116.54,1154]];
+
+const minMs  = 5538;
+const loopMs = 188693;
+
+function playRickroll() {
+  if (_rrPlaying) return;
+  _rrPlaying = true;
+  _rrCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  _masterGain = _rrCtx.createGain();
+  _masterGain.gain.value = document.getElementById('vol-slider').value / 100 * 0.25;
+  const filt = _rrCtx.createBiquadFilter();
+  filt.type = 'lowpass';
+  filt.frequency.value = 1600;
+  _masterGain.connect(filt);
+  filt.connect(_rrCtx.destination);
+  _rrNodes.push(_masterGain, filt);
+
+  function schedOsc(freq, t0, dur, type, vol) {
+    if (!_rrPlaying || !_rrCtx) return;
+    const osc = _rrCtx.createOscillator();
+    const g   = _rrCtx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    g.gain.setValueAtTime(0,   t0);
+    g.gain.linearRampToValueAtTime(vol, t0 + 0.01);
+    g.gain.setValueAtTime(vol, t0 + dur * 0.80);
+    g.gain.linearRampToValueAtTime(0,   t0 + dur);
+    osc.connect(g); g.connect(_masterGain);
+    osc.start(t0); osc.stop(t0 + dur + 0.02);
+    _rrNodes.push(osc);
+  }
+
+  const LOOKAHEAD = 4.0, TICK_MS = 2000;
+  const startT = _rrCtx.currentTime + 0.05;
+  let scheduledUpTo = startT;
+
+  const allNotes = mel.map(([t,hz,d]) => [t,hz,d,'square',0.22])
+                 .concat(bas.map(([t,hz,d]) => [t,hz,d,'sawtooth',0.09]));
+  const loopSec = loopMs / 1000;
+
+  function tick() {
+    if (!_rrPlaying || !_rrCtx) return;
+    const until = _rrCtx.currentTime + LOOKAHEAD;
+    if (until > scheduledUpTo) {
+      const firstIter = Math.max(0, Math.floor((scheduledUpTo - startT) / loopSec));
+      for (let i = firstIter; i < firstIter + 3; i++) {
+        const base = startT + i * loopSec;
+        for (const [t, hz, d, type, vol] of allNotes) {
+          const ns = base + (t - minMs) / 1000;
+          if (ns >= scheduledUpTo && ns < until) schedOsc(hz, ns, d / 1000, type, vol);
+        }
+      }
+      scheduledUpTo = until;
+    }
+    _rrTimer = setTimeout(tick, TICK_MS);
+  }
+  tick();
+
+  // Progress bar based on loop time
+  const progBar = document.getElementById('prog-bar');
+  let progInterval = setInterval(() => {
+    if (!_rrPlaying || !_rrCtx) { clearInterval(progInterval); return; }
+    const elapsed = (_rrCtx.currentTime - startT + minMs/1000) % loopSec;
+    progBar.style.width = Math.min(100, (elapsed / loopSec) * 100) + '%';
+  }, 200);
+}
+
+function stopAll() {
+  _rrPlaying = false;
+  if (_rrTimer) { clearTimeout(_rrTimer); _rrTimer = null; }
+  _rrNodes.forEach(n => { try { if (n.stop) n.stop(0); } catch(e){} });
+  _rrNodes = [];
+  if (_rrCtx) { _rrCtx.close(); _rrCtx = null; }
+  _masterGain = null;
+  document.getElementById('prog-bar').style.width = '0%';
+  document.getElementById('gif-overlay').classList.remove('hidden');
+}
+
+function setVol(v) {
+  if (_masterGain) _masterGain.gain.value = v / 100 * 0.25;
+}
+
+function startRickroll() {
+  document.getElementById('gif-overlay').classList.add('hidden');
+  playRickroll();
+  spawnNotes();
+}
+
+// ── Floating notes ──────────────────────────────
+function spawnNotes() {
+  if (!_rrPlaying) return;
+  const notes = ['♪','♫','🎵','🎶','🎸','💃'];
+  const n = document.createElement('div');
+  n.className = 'note';
+  n.textContent = notes[Math.floor(Math.random() * notes.length)];
+  n.style.left = Math.random() * 90 + '%';
+  n.style.bottom = '0';
+  document.body.appendChild(n);
+  setTimeout(() => n.remove(), 4000);
+  setTimeout(spawnNotes, 600 + Math.random() * 800);
+}
+
+// ── Marquee track name ──────────────────────────
+(function() {
+  const el = document.getElementById('track-marquee');
+  const text = el.textContent + '     ';
+  let pos = 0;
+  setInterval(() => {
+    pos = (pos + 1) % text.length;
+    el.textContent = text.slice(pos) + text.slice(0, pos);
+  }, 120);
+})();
+</script>
+</body>
+</html>

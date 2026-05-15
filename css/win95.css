@@ -1,0 +1,308 @@
+
+    * { box-sizing:border-box; margin:0; padding:0; user-select:none; }
+    body {
+      width:100vw; height:100vh; overflow:hidden;
+      background:#008080;
+      font-family:"MS Sans Serif","Segoe UI",Arial,sans-serif;
+      font-size:11px; cursor:default;
+    }
+    /* === WIN95 BUTTON === */
+    .w-btn {
+      background:#c0c0c0;
+      border-top:2px solid #fff; border-left:2px solid #fff;
+      border-right:2px solid #808080; border-bottom:2px solid #808080;
+      padding:3px 12px; cursor:default; font-family:inherit; font-size:11px;
+      outline:none; min-width:70px;
+    }
+    .w-btn:active {
+      border-top:2px solid #808080; border-left:2px solid #808080;
+      border-right:2px solid #fff; border-bottom:2px solid #fff;
+    }
+    /* === DESKTOP === */
+    #desktop { width:100%; height:calc(100% - 28px); position:relative; }
+    .desktop-icon {
+      position:absolute; width:76px; text-align:center;
+      cursor:pointer; padding:4px; border:1px solid transparent;
+    }
+    .desktop-icon .icon-img { font-size:32px; display:block; margin:0 auto 3px; }
+    .desktop-icon .icon-label {
+      font-size:11px; color:#fff;
+      text-shadow:1px 1px 1px #000;
+      word-break:break-word; line-height:1.3; display:inline-block;
+      padding:1px 2px;
+    }
+    .desktop-icon.selected .icon-label,
+    .desktop-icon:focus .icon-label { background:#000080; }
+    /* === WINDOW === */
+    .w95win {
+      position:absolute; background:#c0c0c0;
+      border-top:2px solid #fff; border-left:2px solid #fff;
+      border-right:2px solid #808080; border-bottom:2px solid #808080;
+      box-shadow:2px 2px 0 #000; min-width:180px; min-height:80px;
+      display:flex; flex-direction:column;
+    }
+    .w95win.inactive .win-titlebar { background:#808080; }
+    .win-titlebar {
+      background:#000080; color:#fff; padding:3px 4px;
+      display:flex; align-items:center; gap:4px;
+      cursor:move; flex-shrink:0; height:22px;
+    }
+    .win-titlebar-icon { font-size:14px; flex-shrink:0; }
+    .win-titlebar-text {
+      flex:1; font-weight:bold; font-size:11px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .win-titlebar-btns { display:flex; gap:2px; }
+    .win-titlebar-btn {
+      width:16px; height:14px; background:#c0c0c0;
+      border-top:1.5px solid #fff; border-left:1.5px solid #fff;
+      border-right:1.5px solid #808080; border-bottom:1.5px solid #808080;
+      display:flex; align-items:center; justify-content:center;
+      cursor:default; font-size:8px; font-weight:bold; color:#000;
+      flex-shrink:0; line-height:1;
+    }
+    .win-titlebar-btn:active {
+      border-top:1.5px solid #808080; border-left:1.5px solid #808080;
+      border-right:1.5px solid #fff; border-bottom:1.5px solid #fff;
+    }
+    /* Menu bar */
+    .win-menubar {
+      background:#c0c0c0; display:flex;
+      border-bottom:1px solid #808080; flex-shrink:0;
+    }
+    .win-mi {
+      padding:2px 8px; cursor:default; position:relative; white-space:nowrap;
+    }
+    .win-mi:hover, .win-mi.open { background:#000080; color:#fff; }
+    .win-dd {
+      display:none; position:absolute; top:100%; left:0;
+      background:#c0c0c0;
+      border-top:1px solid #fff; border-left:1px solid #fff;
+      border-right:2px solid #808080; border-bottom:2px solid #808080;
+      min-width:150px; z-index:99999; box-shadow:2px 2px 0 #000;
+    }
+    .win-mi.open .win-dd { display:block; }
+    .win-dd-item {
+      padding:4px 20px; cursor:default; white-space:nowrap; font-size:11px;
+    }
+    .win-dd-item:hover { background:#000080; color:#fff; }
+    .win-dd-item.dis { color:#808080; }
+    .win-dd-item.dis:hover { background:transparent; color:#808080; }
+    .win-dd-sep { height:1px; background:#808080; margin:2px 4px; border-bottom:1px solid #fff; }
+    /* Client */
+    .win-client { flex:1; overflow:auto; position:relative; }
+    /* Statusbar */
+    .win-sb {
+      height:20px; background:#c0c0c0; border-top:1px solid #808080;
+      display:flex; align-items:center; padding:0 4px; font-size:10px; flex-shrink:0;
+    }
+    .win-sb-field {
+      border-top:1px solid #808080; border-left:1px solid #808080;
+      border-right:1px solid #fff; border-bottom:1px solid #fff;
+      padding:1px 6px; flex:1;
+    }
+    /* Resize handles */
+    .wr { position:absolute; }
+    .wr-n  { top:-3px; left:4px; right:4px; height:6px; cursor:n-resize; }
+    .wr-s  { bottom:-3px; left:4px; right:4px; height:6px; cursor:s-resize; }
+    .wr-w  { top:4px; bottom:4px; left:-3px; width:6px; cursor:w-resize; }
+    .wr-e  { top:4px; bottom:4px; right:-3px; width:6px; cursor:e-resize; }
+    .wr-nw { top:-3px; left:-3px; width:10px; height:10px; cursor:nw-resize; }
+    .wr-ne { top:-3px; right:-3px; width:10px; height:10px; cursor:ne-resize; }
+    .wr-sw { bottom:-3px; left:-3px; width:10px; height:10px; cursor:sw-resize; }
+    .wr-se { bottom:-3px; right:-3px; width:10px; height:10px; cursor:se-resize; }
+    /* === TASKBAR === */
+    #taskbar {
+      position:fixed; bottom:0; left:0; right:0; height:28px;
+      background:#c0c0c0; border-top:2px solid #fff;
+      display:flex; align-items:center; gap:2px; padding:2px; z-index:9000;
+    }
+    #start-btn {
+      height:22px; padding:0 8px; background:#c0c0c0;
+      border-top:2px solid #fff; border-left:2px solid #fff;
+      border-right:2px solid #808080; border-bottom:2px solid #808080;
+      font-weight:bold; font-size:12px; cursor:default;
+      display:flex; align-items:center; gap:4px; white-space:nowrap;
+    }
+    #start-btn:active, #start-btn.active {
+      border-top:2px solid #808080; border-left:2px solid #808080;
+      border-right:2px solid #fff; border-bottom:2px solid #fff;
+    }
+    .tb-sep { width:2px; height:20px; border-left:1px solid #808080; border-right:1px solid #fff; }
+    #taskbar-wins { flex:1; display:flex; gap:2px; overflow:hidden; }
+    .tb-win-btn {
+      height:22px; padding:0 8px; background:#c0c0c0;
+      border-top:2px solid #fff; border-left:2px solid #fff;
+      border-right:2px solid #808080; border-bottom:2px solid #808080;
+      font-size:11px; cursor:default; display:flex; align-items:center; gap:4px;
+      max-width:160px; overflow:hidden; white-space:nowrap;
+    }
+    .tb-win-btn.active {
+      border-top:2px solid #808080; border-left:2px solid #808080;
+      border-right:2px solid #fff; border-bottom:2px solid #fff;
+    }
+    #systray {
+      border-top:1px solid #808080; border-left:1px solid #808080;
+      border-right:1px solid #fff; border-bottom:1px solid #fff;
+      height:22px; padding:0 8px; display:flex; align-items:center;
+      gap:6px; font-size:11px; white-space:nowrap;
+    }
+    /* === START MENU === */
+    #start-menu {
+      display:none; position:fixed; bottom:28px; left:0;
+      width:210px; background:#c0c0c0;
+      border-top:2px solid #fff; border-left:2px solid #fff;
+      border-right:2px solid #808080; border-bottom:2px solid #808080;
+      box-shadow:2px 2px 0 #000; z-index:98000; flex-direction:row;
+    }
+    #start-menu.show { display:flex; }
+    #sm-side {
+      width:26px; background:linear-gradient(#000080,#1084d0);
+      writing-mode:vertical-rl; transform:rotate(180deg); color:#c0c0c0;
+      font-size:14px; font-weight:bold; padding:4px 2px; letter-spacing:2px;
+      display:flex; align-items:center; justify-content:flex-end;
+    }
+    #sm-items { flex:1; display:flex; flex-direction:column; }
+    .sm-item {
+      padding:5px 10px 5px 8px; display:flex; align-items:center;
+      gap:8px; cursor:default; position:relative;
+    }
+    .sm-item:hover { background:#000080; color:#fff; }
+    .sm-item-icon { font-size:20px; flex-shrink:0; width:24px; text-align:center; }
+    .sm-item-lbl { font-size:12px; font-weight:bold; }
+    .sm-item-sub { font-size:10px; font-weight:normal; color:#808080; display:block; }
+    .sm-item:hover .sm-item-sub { color:#c0c0c0; }
+    .sm-sep { height:1px; background:#808080; margin:2px 4px; border-bottom:1px solid #fff; }
+    /* === APP STYLES === */
+    textarea.notepad-area {
+      width:100%; height:100%; border:none; outline:none; resize:none;
+      font-family:"Courier New",monospace; font-size:12px;
+      padding:4px; background:#fff; color:#000;
+    }
+    .calc-wrap { padding:8px; background:#c0c0c0; display:flex; flex-direction:column; gap:4px; height:100%; }
+    .calc-display {
+      background:#d4edda;
+      border-top:2px solid #808080; border-left:2px solid #808080;
+      border-right:2px solid #fff; border-bottom:2px solid #fff;
+      text-align:right; padding:4px 8px;
+      font-family:"Courier New",monospace; font-size:22px; min-height:38px;
+      display:flex; align-items:center; justify-content:flex-end; word-break:break-all;
+    }
+    .calc-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:3px; }
+    .calc-btn {
+      padding:5px 2px; background:#c0c0c0;
+      border-top:2px solid #fff; border-left:2px solid #fff;
+      border-right:2px solid #808080; border-bottom:2px solid #808080;
+      cursor:default; font-size:12px; font-weight:bold; text-align:center;
+    }
+    .calc-btn:active {
+      border-top:2px solid #808080; border-left:2px solid #808080;
+      border-right:2px solid #fff; border-bottom:2px solid #fff;
+    }
+    .calc-btn.orange { background:#e8a000; color:#fff; }
+    .calc-btn.red    { background:#c00000; color:#fff; }
+    .expl-wrap { display:flex; height:100%; }
+    .expl-tree {
+      width:150px; border-right:1px solid #808080; background:#fff;
+      padding:4px; font-size:11px; overflow-y:auto; flex-shrink:0;
+    }
+    .expl-ti {
+      padding:2px 4px; cursor:default; display:flex; align-items:center; gap:4px;
+    }
+    .expl-ti:hover, .expl-ti.sel { background:#000080; color:#fff; }
+    .expl-content {
+      flex:1; background:#fff; padding:8px;
+      display:flex; flex-wrap:wrap; gap:16px; align-content:flex-start; overflow-y:auto;
+    }
+    .expl-item { width:64px; text-align:center; cursor:default; padding:4px; }
+    .expl-item .ei-icon { font-size:28px; }
+    .expl-item .ei-lbl  { font-size:10px; word-break:break-word; line-height:1.3; }
+    .expl-item:hover, .expl-item.sel { background:#000080; color:#fff; }
+    .paint-wrap { display:flex; flex-direction:column; height:100%; }
+    .paint-toolbar {
+      background:#c0c0c0; padding:4px; border-bottom:1px solid #808080;
+      display:flex; gap:4px; flex-wrap:wrap; align-items:center;
+    }
+    .paint-tool {
+      width:26px; height:26px;
+      border-top:2px solid #fff; border-left:2px solid #fff;
+      border-right:2px solid #808080; border-bottom:2px solid #808080;
+      background:#c0c0c0; display:flex; align-items:center; justify-content:center;
+      font-size:14px; cursor:default;
+    }
+    .paint-tool.active, .paint-tool:active {
+      border-top:2px solid #808080; border-left:2px solid #808080;
+      border-right:2px solid #fff; border-bottom:2px solid #fff;
+    }
+    .paint-cvwrap {
+      flex:1; overflow:auto; background:#808080;
+      display:flex; align-items:flex-start; justify-content:flex-start; padding:8px;
+    }
+    canvas.paint-cv { background:#fff; cursor:crosshair; display:block; }
+    .paint-colors {
+      background:#c0c0c0; padding:4px; border-top:1px solid #808080;
+      display:flex; gap:2px; flex-wrap:wrap;
+    }
+    .paint-color {
+      width:16px; height:16px; cursor:default;
+      border-top:1px solid #fff; border-left:1px solid #fff;
+      border-right:1px solid #808080; border-bottom:1px solid #808080;
+    }
+    .ie-wrap { display:flex; flex-direction:column; height:100%; }
+    .ie-toolbar {
+      background:#c0c0c0; border-bottom:1px solid #808080;
+      padding:4px; display:flex; gap:4px; align-items:center;
+    }
+    .ie-addr {
+      flex:1; border-top:2px solid #808080; border-left:2px solid #808080;
+      border-right:2px solid #fff; border-bottom:2px solid #fff;
+      padding:1px 4px; font-size:11px; background:#fff; outline:none;
+    }
+    .ie-content { flex:1; background:#fff; overflow:auto; padding:16px; font-family:Arial,sans-serif; font-size:12px; }
+    .doom-wrap {
+      background:#000; height:100%; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; color:#f00; font-family:monospace;
+    }
+    .sysinfo-wrap { padding:12px; font-size:11px; line-height:2; overflow-y:auto; }
+    .si-row { display:flex; gap:8px; }
+    .si-lbl { color:#808080; width:170px; flex-shrink:0; }
+    .si-val { font-weight:bold; }
+    /* Context menu */
+    #ctx95 {
+      display:none; position:fixed; background:#c0c0c0;
+      border-top:2px solid #fff; border-left:2px solid #fff;
+      border-right:2px solid #808080; border-bottom:2px solid #808080;
+      box-shadow:2px 2px 0 #000; z-index:999999; min-width:160px;
+    }
+    #ctx95.show { display:block; }
+    .ctx95-item { padding:4px 20px; cursor:default; font-size:11px; white-space:nowrap; }
+    .ctx95-item:hover { background:#000080; color:#fff; }
+    .ctx95-sep { height:1px; background:#808080; margin:2px 4px; border-bottom:1px solid #fff; }
+    .ctx95-item.dis { color:#808080; }
+    .ctx95-item.dis:hover { background:transparent; color:#808080; }
+    /* Boot */
+    #boot {
+      position:fixed; inset:0; background:#000;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      z-index:999999; color:#c0c0c0; font-family:"Courier New",monospace;
+    }
+    #boot-bar { width:300px; height:18px; border:2px solid #c0c0c0; margin-top:16px; }
+    #boot-fill { height:100%; background:#0000aa; width:0%; }
+    #boot-status { margin-top:6px; font-size:11px; color:#808080; }
+    /* toast */
+    .w95toast {
+      position:fixed; bottom:36px; left:50%; transform:translateX(-50%);
+      background:#ffffc0; border:1px solid #808080; padding:6px 14px;
+      font-size:11px; z-index:999998; box-shadow:2px 2px 0 #808080;
+      font-family:"MS Sans Serif",Arial,sans-serif; max-width:80vw; text-align:center;
+    }
+    /* scroll */
+    ::-webkit-scrollbar { width:16px; height:16px; }
+    ::-webkit-scrollbar-track { background:#c0c0c0; }
+    ::-webkit-scrollbar-thumb {
+      background:#c0c0c0;
+      border-top:1px solid #fff; border-left:1px solid #fff;
+      border-right:1px solid #808080; border-bottom:1px solid #808080;
+    }
+    ::-webkit-scrollbar-button { background:#c0c0c0; height:16px; width:16px; }
+  

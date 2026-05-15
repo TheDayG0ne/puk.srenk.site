@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>ПУКДОС 95</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💨</text></svg>">
+  <link rel="stylesheet" href="css/win95.css" />
+</head>
+<body>
+
+<!-- BIOS SCREEN -->
+<div id="bios" style="position:fixed;inset:0;background:#000;color:#aaa;font-family:'Courier New',monospace;font-size:13px;z-index:9999998;padding:20px 28px;line-height:1.6;overflow:hidden;">
+  <div id="bios-out"></div>
+</div>
+
+<!-- BOOT -->
+<div id="boot" style="display:none">
+  <div style="font-size:52px">💨</div>
+  <div style="font-size:20px;font-weight:bold;margin-top:8px">ПУКДОС 95</div>
+  <div style="color:#808080;font-size:11px;margin-top:4px">Microsoft — только не та</div>
+  <div id="boot-bar"><div id="boot-fill"></div></div>
+  <div id="boot-status">Инициализация пуков...</div>
+</div>
+
+<!-- DESKTOP -->
+<div id="desktop">
+  <div class="desktop-icon" style="left:16px;top:16px"   ondblclick="openApp('mypc')">
+    <span class="icon-img">🖥️</span><span class="icon-label">Мой<br>Компьютер</span>
+  </div>
+  <div class="desktop-icon" style="left:16px;top:110px"  ondblclick="openApp('notepad')">
+    <span class="icon-img">📝</span><span class="icon-label">Блокнот</span>
+  </div>
+  <div class="desktop-icon" style="left:16px;top:200px"  ondblclick="openApp('paint')">
+    <span class="icon-img">🎨</span><span class="icon-label">Пейнт</span>
+  </div>
+  <div class="desktop-icon" style="left:16px;top:290px"  ondblclick="openApp('ie')">
+    <span class="icon-img">🌐</span><span class="icon-label">Пук&shy;Плорер</span>
+  </div>
+  <div class="desktop-icon" style="left:16px;top:380px"  ondblclick="openApp('doom')">
+    <span class="icon-img">🔫</span><span class="icon-label">ПУКДУМ</span>
+  </div>
+  <div class="desktop-icon" style="left:16px;top:470px"  ondblclick="openApp('trash')">
+    <span class="icon-img">🗑️</span><span class="icon-label">Корзина</span>
+  </div>
+  <div class="desktop-icon" style="left:16px;top:560px"  ondblclick="openApp('calc')">
+    <span class="icon-img">🧮</span><span class="icon-label">Калькулятор</span>
+  </div>
+</div>
+
+<!-- TASKBAR -->
+<div id="taskbar">
+  <button id="start-btn" onclick="toggleSM()">💨 Пук</button>
+  <div class="tb-sep"></div>
+  <div id="taskbar-wins"></div>
+  <div class="tb-sep"></div>
+  <div id="systray">
+    <span id="vol-icon" title="Громкость" onclick="toggleVolPopup(event)" style="cursor:default;padding:0 4px;user-select:none">🔊</span>
+    <span id="clock" onclick="toggleClockPopup(event)" style="cursor:default;padding:0 4px;user-select:none">00:00</span>
+  </div>
+</div>
+
+<!-- START MENU -->
+<div id="start-menu">
+  <div id="sm-side">ПУКДОС 95</div>
+  <div id="sm-items">
+    <div class="sm-item" onclick="openApp('notepad');closeSM()">
+      <span class="sm-item-icon">📝</span>
+      <span class="sm-item-lbl">Блокнот<span class="sm-item-sub">Пукпром Текст</span></span>
+    </div>
+    <div class="sm-item" onclick="openApp('calc');closeSM()">
+      <span class="sm-item-icon">🧮</span>
+      <span class="sm-item-lbl">Калькулятор</span>
+    </div>
+    <div class="sm-item" onclick="openApp('paint');closeSM()">
+      <span class="sm-item-icon">🎨</span>
+      <span class="sm-item-lbl">Пейнт</span>
+    </div>
+    <div class="sm-item" onclick="openApp('ie');closeSM()">
+      <span class="sm-item-icon">🌐</span>
+      <span class="sm-item-lbl">ПукПлорер<span class="sm-item-sub">Интернет</span></span>
+    </div>
+    <div class="sm-item" onclick="openApp('doom');closeSM()">
+      <span class="sm-item-icon">🔫</span>
+      <span class="sm-item-lbl">ПУКДУМ<span class="sm-item-sub">id Software</span></span>
+    </div>
+    <div class="sm-item" onclick="openApp('sysinfo');closeSM()">
+      <span class="sm-item-icon">ℹ️</span>
+      <span class="sm-item-lbl">Система<span class="sm-item-sub">Сведения о ПК</span></span>
+    </div>
+    <div class="sm-sep"></div>
+    <div class="sm-item" onclick="openApp('mypc');closeSM()">
+      <span class="sm-item-icon">🖥️</span>
+      <span class="sm-item-lbl">Мой Компьютер</span>
+    </div>
+    <div class="sm-item" onclick="openApp('trash');closeSM()">
+      <span class="sm-item-icon">🗑️</span>
+      <span class="sm-item-lbl">Корзина</span>
+    </div>
+    <div class="sm-sep"></div>
+    <div class="sm-item" onclick="shutdownDlg()">
+      <span class="sm-item-icon">🚪</span>
+      <span class="sm-item-lbl">Завершение работы</span>
+    </div>
+  </div>
+</div>
+
+<!-- DESKTOP CONTEXT MENU -->
+<div id="ctx95">
+  <div class="ctx95-item" onclick="win95toast('Значки упорядочены. Ничего не изменилось.');hideCtx()">Упорядочить значки</div>
+  <div class="ctx95-item" onclick="win95toast('Обновлено.');hideCtx()">Обновить</div>
+  <div class="ctx95-sep"></div>
+  <div class="ctx95-item" onclick="openApp('sysinfo');hideCtx()">Свойства</div>
+</div>
+
+<!-- CLOCK POPUP -->
+<div id="clock-popup" style="display:none;position:fixed;right:4px;bottom:30px;
+  background:#c0c0c0;border-top:2px solid #fff;border-left:2px solid #fff;
+  border-right:2px solid #808080;border-bottom:2px solid #808080;
+  box-shadow:2px 2px 0 #000;z-index:999997;padding:8px;width:200px;">
+  <canvas id="clock-cv" width="120" height="120" style="display:block;margin:0 auto 8px"></canvas>
+  <div id="clock-cal" style="font-size:10px;text-align:center"></div>
+</div>
+
+<!-- VOLUME POPUP -->
+<div id="vol-popup" style="display:none;position:fixed;right:4px;bottom:30px;
+  background:#c0c0c0;border-top:2px solid #fff;border-left:2px solid #fff;
+  border-right:2px solid #808080;border-bottom:2px solid #808080;
+  box-shadow:2px 2px 0 #000;z-index:999997;padding:10px;width:60px;text-align:center;">
+  <div style="font-size:18px;margin-bottom:4px">🔊</div>
+  <input type="range" id="vol-slider" min="0" max="100" value="70" 
+    orient="vertical" style="writing-mode:vertical-lr;direction:rtl;height:80px;"
+    oninput="setWin95Vol(this.value)">
+  <div id="vol-pct" style="font-size:10px;margin-top:4px">70%</div>
+</div>
+
+<!-- BSOD OVERLAY -->
+<div id="bsod" style="display:none;position:fixed;inset:0;background:#0000aa;color:#fff;
+  font-family:'Courier New',monospace;font-size:14px;z-index:9999999;
+  padding:40px 60px;line-height:1.8;cursor:default;" onclick="hideBSOD()">
+</div>
+
+<!-- SHUTDOWN SCREEN -->
+<div id="shutdown-screen" style="display:none;position:fixed;inset:0;background:#000;color:#c0c0c0;font-family:'Courier New',monospace;font-size:14px;z-index:9999998;padding:40px 60px;line-height:2;">
+  <div id="shutdown-out"></div>
+</div>
+
+<script src="js/win95.js"></script>
+</body>
+</html>
+

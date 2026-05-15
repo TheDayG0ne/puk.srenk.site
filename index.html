@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>💨 ПУК.СРЕНЬК.САЙТ — ОФИЦИАЛЬНАЯ РЕЗИДЕНЦИЯ ПУКА</title>
+  <meta name="description" content="Самый серьёзный сайт в интернете" />
+  <meta property="og:title" content="💨 PUK.SRENK.SITE" />
+  <meta property="og:description" content="Ты не должен был это находить" />
+  <meta property="og:image" content="https://i.imgur.com/removed.png" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💨</text></svg>">
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+<!-- LOADER -->
+<div id="loader">
+  <div id="loader-text">ЗАГРУЗКА ПУК-СИСТЕМЫ...</div>
+  <div id="loader-bar-wrap"><div id="loader-bar"></div></div>
+  <div id="loader-status">инициализация пуков: 0%</div>
+</div>
+
+<!-- ELEMENTS -->
+<div id="nyan-bar"></div>
+<canvas id="bg-canvas"></canvas>
+<div id="cursor">💨</div>
+<div id="scroll-progress"></div>
+<div id="toast-container"></div>
+<div id="achievements"></div>
+<div id="bouncy"></div>
+
+<!-- CAT -->
+<div id="cat-img">🐱</div>
+
+<!-- SECRET ZONE (bottom-right corner) -->
+<div id="secret-zone" title=""></div>
+
+<!-- WIN95 ICON (shown after Konami code) -->
+<a id="win95-icon" href="win95.html" target="_blank" title="ПУКДОС 95 — Секретная страница">💾</a>
+
+<!-- ZHDUN (appears from bottom after typing "ждун") -->
+<div id="zhdun">( ᐑ )</div>
+
+<!-- SUDO TERMINAL -->
+<div id="sudo-terminal">
+  <div style="margin-bottom:6px;font-size:11px;opacity:0.6">ПУКПРОМ ТЕРМИНАЛ · ESC или "exit" для закрытия</div>
+  <div id="sudo-output"></div>
+  <div id="sudo-input-row">
+    <span id="sudo-prompt">root@pukprom:~$ </span>
+    <input id="sudo-input" type="text" autocomplete="off" spellcheck="false" />
+  </div>
+</div>
+
+<!-- CONTEXT MENU -->
+<div id="ctx-menu">
+  <div class="ctx-item" onclick="doPuk(event);document.getElementById('ctx-menu').classList.remove('show')">💨 Пукнуть здесь</div>
+  <div class="ctx-item" onclick="FartEngine.playLoud();document.getElementById('ctx-menu').classList.remove('show')">💥 МОЩНЫЙ ПУК</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="spawnZhdun();document.getElementById('ctx-menu').classList.remove('show')">👀 Вызвать Ждуна</div>
+  <div class="ctx-item" onclick="triggerEarthquake();document.getElementById('ctx-menu').classList.remove('show')">🌍 Землетрясение</div>
+  <div class="ctx-item" onclick="showSudoTerminal();document.getElementById('ctx-menu').classList.remove('show')">🖥️ Открыть терминал</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="window.open('win95.html','_blank');document.getElementById('ctx-menu').classList.remove('show')">💾 ПУКДОС 95</div>
+  <div class="ctx-item" onclick="document.getElementById('ctx-menu').classList.remove('show');showModal('ℹ️','Правой кнопкой тут нельзя.<br>Ты уже это нашёл.<br>Молодец.')">ℹ️ Свойства</div>
+</div>
+
+<!-- MODAL -->
+<div id="modal">
+  <div id="modal-content">
+    <h3 id="modal-title">???</h3>
+    <div id="modal-body"></div>
+    <button id="modal-close" onclick="closeModal()">ЗАКРЫТЬ</button>
+  </div>
+</div>
+
+<!-- KONAMI OVERLAY -->
+<div id="konami-overlay">
+  <div id="konami-text">🎮 KONAMI КОД АКТИВИРОВАН!<br>+30 ЖИЗНЕЙ<br>💨💨💨</div>
+</div>
+
+<!-- MAIN -->
+<main>
+  <div id="hero">
+    <h1 class="glitch" data-text="💨 ПУК.СРЕНЬК.САЙТ 💨">💨 ПУК.СРЕНЬК.САЙТ 💨</h1>
+    <p class="subtitle">Самый важный сайт в истории человечества</p>
+    <div id="visualizer"></div>
+    <div id="puk-counter-display">ПУКОВ СДЕЛАНО: <span id="puk-count">0</span></div>
+    <button id="puk-btn" onclick="doPuk(event)">💨</button>
+    <p style="font-size:12px;opacity:0.4;margin-top:10px;">© <span id="copyright-year"></span> ООО «ПУКПРОМ» · Все права защищены</p>
+  </div>
+
+  <!-- DOGE SECTION -->
+  <section>
+    <h2>🐕 ТАКОЙ ВОТ САЙТ. МНОГА ПУК.</h2>
+    <div id="doge-zone">
+      <span class="doge-word" style="top:10px;left:5%;animation-delay:0s">wow</span>
+      <span class="doge-word" style="top:15px;right:8%;animation-delay:0.5s">much puk</span>
+      <span class="doge-word" style="bottom:10px;left:12%;animation-delay:1s">very site</span>
+      <span class="doge-word" style="bottom:20px;right:5%;animation-delay:1.5s">so amaze</span>
+      <span class="doge-word" style="top:40%;left:2%;animation-delay:0.7s">many gas</span>
+      <img id="doge-img"
+        src="https://upload.wikimedia.org/wikipedia/en/5/5f/Original_Doge_meme.jpg"
+        alt="doge"
+        onclick="dogeClick()"
+        title="Кликни меня 👀"
+      />
+    </div>
+  </section>
+
+  <!-- FACTS -->
+  <section>
+    <h2>📚 НАУЧНЫЕ ФАКТЫ</h2>
+    <div id="fact-box" onclick="nextFact()">
+      <span id="fact-text">Средний человек производит 0.5–2.5 литра газа в день. Это официально.</span>
+    </div>
+  </section>
+
+  <!-- MEME WALL -->
+  <section>
+    <h2>🎭 СТЕНА МЕМОВ</h2>
+    <div id="meme-wall"></div>
+  </section>
+
+  <!-- QUIZ -->
+  <section>
+    <h2>🧠 ТЕСТ НА IQ</h2>
+    <div id="quiz-box">
+      <div id="quiz-question">Загрузка вопроса...</div>
+      <div id="quiz-answers"></div>
+    </div>
+  </section>
+
+  <!-- SNAKE -->
+  <section id="snake-section">
+    <h2>🐍 ЗМЕЙКА (с пуками)</h2>
+    <div id="snake-score">СЧЁТ: 0</div>
+    <canvas id="snake-canvas" width="300" height="300"></canvas>
+    <br>
+    <button id="snake-start" onclick="startSnake()">▶ ИГРАТЬ</button>
+    <p style="font-size:11px;opacity:0.4;margin-top:8px;">WASD или стрелки</p>
+  </section>
+
+  <!-- DEANON -->
+  <section>
+    <h2>🔍 МЫ ВАС ВЫЧИСЛИЛИ</h2>
+    <div id="deanon-section">
+      <div id="deanon-alert">⚠ ВНИМАНИЕ: СБОР ДАННЫХ ЗАВЕРШЁН ⚠</div>
+      <div id="deanon-grid">
+        <div class="deanon-card">
+          <div class="deanon-label">IP-АДРЕС</div>
+          <div class="deanon-value loading" id="d-ip">сканирование...</div>
+        </div>
+        <div class="deanon-card">
+          <div class="deanon-label">КООРДИНАТЫ</div>
+          <div class="deanon-value loading" id="d-city">пеленгуем...</div>
+        </div>
+        <div class="deanon-card">
+          <div class="deanon-label">СТРАНА</div>
+          <div class="deanon-value loading" id="d-country">загрузка...</div>
+        </div>
+        <div class="deanon-card">
+          <div class="deanon-label">ПРОВАЙДЕР</div>
+          <div class="deanon-value loading" id="d-org">взламываем...</div>
+        </div>
+        <div class="deanon-card">
+          <div class="deanon-label">БРАУЗЕР</div>
+          <div class="deanon-value loading" id="d-browser">анализ...</div>
+        </div>
+        <div class="deanon-card">
+          <div class="deanon-label">ОПЕРАЦИОННАЯ СИСТЕМА</div>
+          <div class="deanon-value loading" id="d-os">определяется...</div>
+        </div>
+        <div class="deanon-card">
+          <div class="deanon-label">РАЗРЕШЕНИЕ ЭКРАНА</div>
+          <div class="deanon-value loading" id="d-screen">измерение...</div>
+        </div>
+        <div class="deanon-card">
+          <div class="deanon-label">ЧАСОВОЙ ПОЯС</div>
+          <div class="deanon-value loading" id="d-tz">вычисляем...</div>
+        </div>
+        <div class="deanon-card">
+          <div class="deanon-label">ЯЗЫК СИСТЕМЫ</div>
+          <div class="deanon-value loading" id="d-lang">читаем память...</div>
+        </div>
+        <div class="deanon-card">
+          <div class="deanon-label">ВРЕМЯ НА САЙТЕ</div>
+          <div class="deanon-value" id="d-time">0 сек</div>
+        </div>
+        <div class="deanon-card">
+          <div class="deanon-label">ЗАРЯД БАТАРЕИ</div>
+          <div class="deanon-value loading" id="d-battery">подключаемся...</div>
+        </div>
+        <div class="deanon-card">
+          <div class="deanon-label">СДЕЛАНО ПУКОВ</div>
+          <div class="deanon-value" id="d-puks" style="color:var(--puk)">0</div>
+        </div>
+      </div>
+      <div id="deanon-warning">
+        😱 БОЙСЯ 😱<br>
+        ДАННЫЕ ПЕРЕДАНЫ В ФСБ, ЦРУ, МВД И ПУКПРОМ<br>
+        ВАМ ОСТАЛОСЬ: <span id="deanon-countdown">∞</span>
+      </div>
+      <div id="deanon-fine-print">
+        * Все данные получены из открытых источников и вашего браузера.<br>
+        * ООО «ПУКПРОМ» не несёт ответственности за вызванный испуг и пук.<br>
+        * Это мемный сайт. Никуда ничего не передаётся. Или передаётся? 👀
+      </div>
+    </div>
+  </section>
+
+  <!-- HINTS BUTTON -->
+  <div id="hints-wrap">
+    <button id="hints-btn" title="Пасхалки" onclick="toggleHints()">?</button>
+    <div id="hints-panel">
+      <div id="hints-close" onclick="toggleHints()">✕</div>
+      <div style="margin-bottom:6px;font-size:10px;opacity:0.6">ПАСХАЛКИ (не подсматривай!)</div>
+      <kbd>↑↑↓↓←→←→BA</kbd> — Konami<br>
+      Кликни на догу 10 раз<br>
+      Найди котика<br>
+      Правая кнопка мыши<br>
+      Тряси мышью<br>
+      Введи: «ждун», «sudo», «win95», «вжух», «xyzzy»<br>
+      Загляни в консоль (F12)
+    </div>
+  </div>
+</main>
+
+<!-- DIPLOMA MODAL -->
+<div id="diploma-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:99998;align-items:center;justify-content:center;">
+  <div id="diploma-modal-inner" style="background:#111;border:3px solid gold;border-radius:16px;padding:36px 40px;max-width:520px;width:90%;text-align:center;animation:modalPop 0.4s cubic-bezier(.34,1.56,.64,1)">
+    <div style="font-size:48px;margin-bottom:12px">🏆💨🏆</div>
+    <h2 style="font-family:'Press Start 2P',monospace;font-size:16px;color:gold;animation:rainbow 2s linear infinite;margin-bottom:16px">100 ПУКОВ!</h2>
+    <p style="font-size:15px;line-height:1.8;margin-bottom:20px">
+      Ты совершил 100 официальных пуков!<br>
+      Пукпром готов выдать тебе <strong style="color:gold">официальный диплом</strong>.<br><br>
+      Как тебя зовут?
+    </p>
+    <input id="diploma-name-input"
+      type="text" maxlength="32" placeholder="Имя или никнейм..."
+      style="width:100%;padding:12px 16px;background:#1a1a1a;border:2px solid gold;border-radius:8px;
+             color:#fff;font-size:16px;font-family:'Comic Neue',cursive;box-sizing:border-box;outline:none;text-align:center"
+    />
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:20px;flex-wrap:wrap">
+      <button id="diploma-gen-btn"
+        style="padding:12px 24px;background:gold;border:none;border-radius:8px;color:#000;
+               font-family:'Press Start 2P',monospace;font-size:11px;cursor:pointer"
+        onclick="doGenerateDiploma()">
+        💨 ПОЛУЧИТЬ ДИПЛОМ (PDF)
+      </button>
+      <button onclick="document.getElementById('diploma-modal').style.display='none'"
+        style="padding:12px 20px;background:#333;border:2px solid #555;border-radius:8px;color:#aaa;
+               font-family:'Press Start 2P',monospace;font-size:10px;cursor:pointer">
+        ПОТОМ
+      </button>
+    </div>
+    <p id="diploma-status" style="margin-top:14px;font-size:12px;color:#888;min-height:18px"></p>
+  </div>
+</div>
+
+<footer>
+  <p>puk.srenk.site · Работает на 100% чистой энергии 💨</p>
+  <p style="margin-top:8px">Если тебе здесь плохо — это фича, не баг</p>
+  <p style="margin-top:20px;font-size:10px;opacity:0.3">
+    Сайт не несёт ответственности за потерянное время, испорченное настроение и неконтролируемый смех
+  </p>
+  <p style="margin-top:16px;font-size:11px;opacity:0.5">
+    © <span class="footer-year"></span> ООО «ПУКПРОМ» ·
+    Разработал <a href="https://thedayg0ne.ru" target="_blank" rel="noopener">TheDayG0ne</a>
+    на коленке по приколу ·
+    <a href="https://github.com/TheDayG0ne/puk.srenk.site" target="_blank" rel="noopener">GitHub (исходники сайта)</a>
+  </p>
+  <br>
+  <span id="secret-link" onclick="showSecret('rickroll')">здесь ничего нет</span>
+</footer>
+
+<script src="js/script.js"></script>
+</body>
+</html>
