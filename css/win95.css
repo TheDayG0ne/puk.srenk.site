@@ -303,13 +303,50 @@
     #boot-bar { width:300px; height:18px; border:2px solid #c0c0c0; margin-top:16px; }
     #boot-fill { height:100%; background:#0000aa; width:0%; }
     #boot-status { margin-top:6px; font-size:11px; color:#808080; }
-    /* toast */
-    .w95toast {
-      position:fixed; bottom:36px; left:50%; transform:translateX(-50%);
-      background:#ffffc0; border:1px solid #808080; padding:6px 14px;
-      font-size:11px; z-index:999998; box-shadow:2px 2px 0 #808080;
-      font-family:"MS Sans Serif",Arial,sans-serif; max-width:80vw; text-align:center;
+    .boot-disk-item:hover { background:#000088 !important; color:#fff !important; }
+    /* balloon notification from systray */
+    @keyframes systray-blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .w95balloon {
+      position: fixed; bottom: 38px; right: 4px;
+      background: #ffffc0;
+      border-top: 2px solid #fff; border-left: 2px solid #fff;
+      border-right: 2px solid #808080; border-bottom: 2px solid #808080;
+      box-shadow: 2px 2px 0 #000;
+      z-index: 999997;
+      font-family: "MS Sans Serif",Arial,sans-serif; font-size: 11px;
+      min-width: 160px; max-width: 280px;
+      transition: opacity 0.3s;
+      animation: balloon-pop 0.15s ease-out;
     }
+    @keyframes balloon-pop { from { transform: scale(0.85) translateY(8px); opacity:0; } to { transform: scale(1) translateY(0); opacity:1; } }
+    /* speech-bubble tail pointing down-right toward systray clock */
+    .w95balloon::after {
+      content: '';
+      position: absolute; bottom: -8px; right: 28px;
+      border-left: 8px solid transparent;
+      border-top: 8px solid #808080;
+    }
+    .w95balloon::before {
+      content: '';
+      position: absolute; bottom: -5px; right: 30px;
+      border-left: 6px solid transparent;
+      border-top: 6px solid #ffffc0;
+      z-index: 1;
+    }
+    .w95balloon-hdr {
+      background: #000080; color: #fff;
+      padding: 2px 4px 2px 6px; font-size: 11px; font-weight: bold;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .w95balloon-close {
+      cursor: pointer; font-size: 10px; padding: 0 3px; line-height: 14px;
+      border: 1px solid transparent;
+    }
+    .w95balloon-close:hover { background: #cc0000; border-color: #fff; }
+    .w95balloon-body { padding: 6px 10px 8px; line-height: 1.5; }
+    /* cursor trails */
+    .puk-trail { position:fixed; pointer-events:none; font-size:10px; z-index:9999999; opacity:0.7; animation: trail-fade 0.5s linear forwards; }
+    @keyframes trail-fade { 0%{opacity:0.7;transform:scale(1)} 100%{opacity:0;transform:scale(0.3)} }
     /* scroll */
     ::-webkit-scrollbar { width:16px; height:16px; }
     ::-webkit-scrollbar-track { background:#c0c0c0; }

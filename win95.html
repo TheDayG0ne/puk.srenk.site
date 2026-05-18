@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
@@ -24,42 +24,57 @@
 
 <!-- DESKTOP -->
 <div id="desktop" style="display:none">
-  <div class="desktop-icon" style="left:16px;top:16px"   ondblclick="openApp('mypc')">
+  <div class="desktop-icon" data-app="mypc" data-label="Мой Компьютер">
     <span class="icon-img">🖥️</span><span class="icon-label">Мой<br>Компьютер</span>
   </div>
-  <div class="desktop-icon" style="left:16px;top:110px"  ondblclick="openApp('notepad')">
+  <div class="desktop-icon" data-app="notepad" data-label="Блокнот">
     <span class="icon-img">📝</span><span class="icon-label">Блокнот</span>
   </div>
-  <div class="desktop-icon" style="left:16px;top:200px"  ondblclick="openApp('paint')">
+  <div class="desktop-icon" data-app="paint" data-label="Пейнт">
     <span class="icon-img">🎨</span><span class="icon-label">Пейнт</span>
   </div>
-  <div class="desktop-icon" style="left:16px;top:290px"  ondblclick="openApp('ie')">
+  <div class="desktop-icon" data-app="ie" data-label="ПукПлорер">
     <span class="icon-img">🌐</span><span class="icon-label">Пук&shy;Плорер</span>
   </div>
-  <div class="desktop-icon" style="left:16px;top:380px"  ondblclick="openApp('doom')">
+  <div class="desktop-icon" data-app="doom" data-label="ПУКДУМ">
     <span class="icon-img">🔫</span><span class="icon-label">ПУКДУМ</span>
   </div>
-  <div class="desktop-icon" style="left:16px;top:470px"  ondblclick="openApp('trash')">
+  <div class="desktop-icon" data-app="trash" data-label="Корзина">
     <span class="icon-img">🗑️</span><span class="icon-label">Корзина</span>
   </div>
-  <div class="desktop-icon" style="left:16px;top:560px"  ondblclick="openApp('calc')">
+  <div class="desktop-icon" data-app="calc" data-label="Калькулятор">
     <span class="icon-img">🧮</span><span class="icon-label">Калькулятор</span>
   </div>
-  <div class="desktop-icon" style="left:16px;top:650px"  ondblclick="openApp('media')">
+  <div class="desktop-icon" data-app="media" data-label="Медиаплеер">
     <span class="icon-img">🎵</span><span class="icon-label">Медиа&shy;плеер</span>
   </div>
-  <div class="desktop-icon" style="left:110px;top:16px"  ondblclick="openApp('ctrl')">
+  <div class="desktop-icon" data-app="ctrl" data-label="Панель управления">
     <span class="icon-img">⚙️</span><span class="icon-label">Панель управ&shy;ления</span>
   </div>
+  <div class="desktop-icon" data-app="mydocs" data-label="Мои Документы">
+    <span class="icon-img">📂</span><span class="icon-label">Мои<br>Документы</span>
+  </div>
+  <div class="desktop-icon" data-app="minesweeper" data-label="Сапёр">
+    <span class="icon-img">💣</span><span class="icon-label">Сапёр</span>
+  </div>
+  <div class="desktop-icon" data-app="solitaire" data-label="Пасьянс">
+    <span class="icon-img">🃏</span><span class="icon-label">Пасьянс</span>
+  </div>
+  <div class="desktop-icon" data-app="chat" data-label="Пук-Чат">
+    <span class="icon-img">💬</span><span class="icon-label">Пук-Чат</span>
+  </div>
+  <div class="desktop-icon" data-app="pukmail" data-label="Пук-Почта">
+    <span class="icon-img">📧</span><span class="icon-label">Пук-Почта</span>
+  </div>
 </div>
-
 <!-- TASKBAR -->
 <div id="taskbar" style="display:none" oncontextmenu="tbCtxMenu(event)">
-  <button id="start-btn" onclick="toggleSM()">💨 Пук</button>
+  <button id="start-btn" onclick="toggleSM()" oncontextmenu="event.preventDefault();showCtxPopup(event.clientX,event.clientY,[{title:'Пуск'},{label:'⚙️ Настройки панели задач',fn:function(){openApp('tbsettings');}}','-',{label:'📊 Диспетчер пуков',fn:function(){openApp('taskman');}}])">💨 Пук</button>
   <div class="tb-sep"></div>
   <div id="taskbar-wins"></div>
   <div class="tb-sep"></div>
   <div id="systray">
+    <span id="systray-balloon-icon" style="display:none;cursor:default;padding:0 4px;animation:systray-blink 1s step-end infinite" title="Новое уведомление" onclick="document.getElementById('w95-balloon')&&(document.getElementById('w95-balloon').style.display=(document.getElementById('w95-balloon').style.display==='none'?'block':'none'))"></span>
     <span id="vol-icon" title="Громкость" onclick="toggleVolPopup(event)" style="cursor:default;padding:0 4px;user-select:none">🔊</span>
     <span id="clock" onclick="toggleClockPopup(event)" style="cursor:default;padding:0 4px;user-select:none">00:00</span>
   </div>
@@ -97,6 +112,22 @@
       <span class="sm-item-icon">🔫</span>
       <span class="sm-item-lbl">ПУКДУМ<span class="sm-item-sub">id Software</span></span>
     </div>
+    <div class="sm-item" onclick="openApp('minesweeper');closeSM()">
+      <span class="sm-item-icon">💣</span>
+      <span class="sm-item-lbl">Сапёр</span>
+    </div>
+    <div class="sm-item" onclick="openApp('solitaire');closeSM()">
+      <span class="sm-item-icon">🃏</span>
+      <span class="sm-item-lbl">Пасьянс</span>
+    </div>
+    <div class="sm-item" onclick="openApp('chat');closeSM()">
+      <span class="sm-item-icon">💬</span>
+      <span class="sm-item-lbl">Пук-Чат 2000<span class="sm-item-sub">Мессенджер</span></span>
+    </div>
+    <div class="sm-item" onclick="openApp('pukmail');closeSM()">
+      <span class="sm-item-icon">📧</span>
+      <span class="sm-item-lbl">Пук-Почта<span class="sm-item-sub">Почтовый клиент</span></span>
+    </div>
     <div class="sm-item" onclick="openApp('sysinfo');closeSM()">
       <span class="sm-item-icon">ℹ️</span>
       <span class="sm-item-lbl">Система<span class="sm-item-sub">Сведения о ПК</span></span>
@@ -105,6 +136,10 @@
     <div class="sm-item" onclick="openApp('mypc');closeSM()">
       <span class="sm-item-icon">🖥️</span>
       <span class="sm-item-lbl">Мой Компьютер</span>
+    </div>
+    <div class="sm-item" onclick="openApp('mydocs');closeSM()">
+      <span class="sm-item-icon">📂</span>
+      <span class="sm-item-lbl">Мои Документы</span>
     </div>
     <div class="sm-item" onclick="openApp('ctrl');closeSM()">
       <span class="sm-item-icon">⚙️</span>
@@ -176,29 +211,23 @@
     <div style="background:#000080;color:#fff;padding:4px 8px;font-size:12px;font-weight:bold;display:flex;align-items:center;gap:8px;">
       <span style="font-size:16px">🔑</span> Вход в систему ПУКДОС 95
     </div>
-    <div style="padding:20px;font-size:12px;">
-      <div style="text-align:center;margin-bottom:16px;">
-        <div style="font-size:48px">👤</div>
-        <div style="font-weight:bold;margin-top:4px">Пользователь ПУК</div>
-      </div>
-      <div style="margin-bottom:8px;">
-        <label style="display:block;margin-bottom:3px">Имя пользователя:</label>
-        <input id="login-user" type="text" value="Пук" style="width:100%;box-sizing:border-box;border:2px inset #808080;padding:3px 5px;font-size:12px;font-family:inherit;">
-      </div>
-      <div style="margin-bottom:16px;">
-        <label style="display:block;margin-bottom:3px">Пароль:</label>
-        <input id="login-pass" type="password" placeholder="(оставьте пустым)" style="width:100%;box-sizing:border-box;border:2px inset #808080;padding:3px 5px;font-size:12px;font-family:inherit;" onkeydown="if(event.key==='Enter') doLogin()">
-      </div>
-      <div style="display:flex;justify-content:center;gap:8px;">
-        <button onclick="doLogin()" style="min-width:80px;padding:4px 12px;">OK</button>
-        <button onclick="doLogin()" style="min-width:80px;padding:4px 12px;">Отмена</button>
-      </div>
+    <div id="login-content" style="padding:20px;font-size:12px;text-align:center;">
+      <!-- Заполняется через showLoginScreen() -->
+      <div style="font-size:48px;margin-bottom:8px">👤</div>
+      <div style="font-size:16px;font-weight:bold;margin-bottom:16px;color:#000080">Пользователь</div>
+      <button class="w-btn" onclick="doLogin()" style="min-width:80px">OK</button>
+      <button class="w-btn" onclick="loginCancel()" style="min-width:80px">Отмена</button>
     </div>
   </div>
-  <div style="color:#c0c0c0;font-size:10px;margin-top:16px;text-align:center;">ПУКДОС 95 &copy; 1993-2025 PukProm Inc.</div>
+  <div style="color:#c0c0c0;font-size:10px;margin-top:16px;text-align:center;">ПУКДОС 95 &copy; 1993-<span id="login-year">2025</span> PukProm Inc.</div>
 </div>
 
-<script src="js/win95.js"></script>
+<script src="js/win95-bios.js"></script>
+<script src="js/win95-boot.js"></script>
+<script src="js/win95-setup.js"></script>
+<script src="js/win95-core.js"></script>
+<script src="js/win95-apps.js"></script>
+<script src="js/win95-fx.js"></script>
 </body>
 </html>
 
