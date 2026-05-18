@@ -23,7 +23,7 @@
 </div>
 
 <!-- DESKTOP -->
-<div id="desktop">
+<div id="desktop" style="display:none">
   <div class="desktop-icon" style="left:16px;top:16px"   ondblclick="openApp('mypc')">
     <span class="icon-img">🖥️</span><span class="icon-label">Мой<br>Компьютер</span>
   </div>
@@ -45,10 +45,16 @@
   <div class="desktop-icon" style="left:16px;top:560px"  ondblclick="openApp('calc')">
     <span class="icon-img">🧮</span><span class="icon-label">Калькулятор</span>
   </div>
+  <div class="desktop-icon" style="left:16px;top:650px"  ondblclick="openApp('media')">
+    <span class="icon-img">🎵</span><span class="icon-label">Медиа&shy;плеер</span>
+  </div>
+  <div class="desktop-icon" style="left:110px;top:16px"  ondblclick="openApp('ctrl')">
+    <span class="icon-img">⚙️</span><span class="icon-label">Панель управ&shy;ления</span>
+  </div>
 </div>
 
 <!-- TASKBAR -->
-<div id="taskbar">
+<div id="taskbar" style="display:none" oncontextmenu="tbCtxMenu(event)">
   <button id="start-btn" onclick="toggleSM()">💨 Пук</button>
   <div class="tb-sep"></div>
   <div id="taskbar-wins"></div>
@@ -71,6 +77,14 @@
       <span class="sm-item-icon">🧮</span>
       <span class="sm-item-lbl">Калькулятор</span>
     </div>
+    <div class="sm-item" onclick="openApp('media');closeSM()">
+      <span class="sm-item-icon">🎵</span>
+      <span class="sm-item-lbl">Медиаплеер<span class="sm-item-sub">ПУКПРОМ Аудио</span></span>
+    </div>
+    <div class="sm-item" onclick="openApp('taskman');closeSM()">
+      <span class="sm-item-icon">📊</span>
+      <span class="sm-item-lbl">Диспетчер пуков<span class="sm-item-sub">Процессы и пуки</span></span>
+    </div>
     <div class="sm-item" onclick="openApp('paint');closeSM()">
       <span class="sm-item-icon">🎨</span>
       <span class="sm-item-lbl">Пейнт</span>
@@ -92,9 +106,18 @@
       <span class="sm-item-icon">🖥️</span>
       <span class="sm-item-lbl">Мой Компьютер</span>
     </div>
+    <div class="sm-item" onclick="openApp('ctrl');closeSM()">
+      <span class="sm-item-icon">⚙️</span>
+      <span class="sm-item-lbl">Панель управления</span>
+    </div>
     <div class="sm-item" onclick="openApp('trash');closeSM()">
       <span class="sm-item-icon">🗑️</span>
       <span class="sm-item-lbl">Корзина</span>
+    </div>
+    <div class="sm-sep"></div>
+    <div class="sm-item" onclick="openApp('tbsettings');closeSM()">
+      <span class="sm-item-icon">📌</span>
+      <span class="sm-item-lbl">Настройки панели задач</span>
     </div>
     <div class="sm-sep"></div>
     <div class="sm-item" onclick="shutdownDlg()">
@@ -111,6 +134,9 @@
   <div class="ctx95-sep"></div>
   <div class="ctx95-item" onclick="openApp('sysinfo');hideCtx()">Свойства</div>
 </div>
+
+<!-- GENERIC POPUP CONTEXT MENU -->
+<div id="ctx-popup"></div>
 
 <!-- CLOCK POPUP -->
 <div id="clock-popup" style="display:none;position:fixed;right:4px;bottom:30px;
@@ -142,6 +168,34 @@
 <!-- SHUTDOWN SCREEN -->
 <div id="shutdown-screen" style="display:none;position:fixed;inset:0;background:#000;color:#c0c0c0;font-family:'Courier New',monospace;font-size:14px;z-index:9999998;padding:40px 60px;line-height:2;">
   <div id="shutdown-out"></div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:#008080;z-index:9999990;align-items:center;justify-content:center;flex-direction:column;">
+  <div style="background:#c0c0c0;border-top:3px solid #fff;border-left:3px solid #fff;border-right:3px solid #808080;border-bottom:3px solid #808080;box-shadow:3px 3px 0 #000;width:340px;">
+    <div style="background:#000080;color:#fff;padding:4px 8px;font-size:12px;font-weight:bold;display:flex;align-items:center;gap:8px;">
+      <span style="font-size:16px">🔑</span> Вход в систему ПУКДОС 95
+    </div>
+    <div style="padding:20px;font-size:12px;">
+      <div style="text-align:center;margin-bottom:16px;">
+        <div style="font-size:48px">👤</div>
+        <div style="font-weight:bold;margin-top:4px">Пользователь ПУК</div>
+      </div>
+      <div style="margin-bottom:8px;">
+        <label style="display:block;margin-bottom:3px">Имя пользователя:</label>
+        <input id="login-user" type="text" value="Пук" style="width:100%;box-sizing:border-box;border:2px inset #808080;padding:3px 5px;font-size:12px;font-family:inherit;">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block;margin-bottom:3px">Пароль:</label>
+        <input id="login-pass" type="password" placeholder="(оставьте пустым)" style="width:100%;box-sizing:border-box;border:2px inset #808080;padding:3px 5px;font-size:12px;font-family:inherit;" onkeydown="if(event.key==='Enter') doLogin()">
+      </div>
+      <div style="display:flex;justify-content:center;gap:8px;">
+        <button onclick="doLogin()" style="min-width:80px;padding:4px 12px;">OK</button>
+        <button onclick="doLogin()" style="min-width:80px;padding:4px 12px;">Отмена</button>
+      </div>
+    </div>
+  </div>
+  <div style="color:#c0c0c0;font-size:10px;margin-top:16px;text-align:center;">ПУКДОС 95 &copy; 1993-2025 PukProm Inc.</div>
 </div>
 
 <script src="js/win95.js"></script>

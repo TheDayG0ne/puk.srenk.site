@@ -224,7 +224,11 @@ function showBiosSetup(onExit) {
     else if (e.key === 'ArrowLeft') { tabIdx = (tabIdx - 1 + tabs.length) % tabs.length; rowIdx = 0; render(); }
     else if (e.key === 'Enter') {
       var item = page[rowIdx];
-      if (item.action === 'save' || item.action === 'nosave' || item.action === 'defaults') {
+      if (item.action === 'save') {
+        applyBiosSettings(pages);
+        cleanup();
+      } else if (item.action === 'nosave' || item.action === 'defaults') {
+        if (item.action === 'defaults') resetBiosDefaults(pages);
         cleanup();
       } else if (item.options) {
         var idx = item.options.indexOf(item.value);
@@ -232,7 +236,7 @@ function showBiosSetup(onExit) {
         render();
       }
     }
-    else if (e.key === 'F10') { cleanup(); }
+    else if (e.key === 'F10') { applyBiosSettings(pages); cleanup(); }
     else if (e.key === 'Escape') { cleanup(); }
     e.preventDefault();
   }
@@ -253,22 +257,101 @@ function showBiosSetup(onExit) {
 }
 
 // ==================== BOOT ====================
+// ==================== BIOS SETTINGS STORE ====================
+var _biosSet = {
+  quickPost: false,
+  turboMode: 'MAXIMUM PUK',
+  pukMode: 'ENABLED',
+  gasCompression: 'Auto',
+  cpuCache: 'Enabled',
+  fartCoprocessor: 'Enabled',
+  bootDevice1: 'Floppy (💾)',
+  gasLock: 'Off'
+};
+
+function applyBiosSettings(pages) {
+  try {
+    _biosSet.quickPost        = (pages.Boot.find(function(i){ return i.label==='Quick POST'; }).value === 'Enabled');
+    _biosSet.turboMode        = pages.Advanced.find(function(i){ return i.label==='Turbo Mode'; }).value;
+    _biosSet.pukMode          = pages.Main.find(function(i){ return i.label==='Puk Mode'; }).value;
+    _biosSet.gasCompression   = pages.Advanced.find(function(i){ return i.label==='Gas Compression'; }).value;
+    _biosSet.cpuCache         = pages.Advanced.find(function(i){ return i.label==='CPU Cache'; }).value;
+    _biosSet.fartCoprocessor  = pages.Advanced.find(function(i){ return i.label==='Fart Coprocessor'; }).value;
+    _biosSet.bootDevice1      = pages.Boot.find(function(i){ return i.label==='1st Boot Device'; }).value;
+    _biosSet.gasLock          = pages.Security.find(function(i){ return i.label==='Gas Lock'; }).value;
+    try { localStorage.setItem('pukdos_bios', JSON.stringify(_biosSet)); } catch(e){}
+  } catch(e) {}
+}
+
+function resetBiosDefaults(pages) {
+  pages.Advanced.find(function(i){ return i.label==='Turbo Mode'; }).value = 'MAXIMUM PUK';
+  pages.Main.find(function(i){ return i.label==='Puk Mode'; }).value = 'ENABLED';
+  pages.Advanced.find(function(i){ return i.label==='CPU Cache'; }).value = 'Enabled';
+  pages.Advanced.find(function(i){ return i.label==='Fart Coprocessor'; }).value = 'Enabled';
+  pages.Boot.find(function(i){ return i.label==='Quick POST'; }).value = 'Disabled';
+  pages.Security.find(function(i){ return i.label==='Gas Lock'; }).value = 'Off';
+}
+
+// Load saved BIOS settings from localStorage
+(function() {
+  try {
+    var saved = localStorage.getItem('pukdos_bios');
+    if (saved) Object.assign(_biosSet, JSON.parse(saved));
+  } catch(e) {}
+})();
+
 function startBootScreen() {
   var boot = document.getElementById('boot');
   boot.style.display = 'flex';
+
+  var bootMsg = 'Microsoft — только не та';
+  var bootIcon = '💨';
+  if (_biosSet.pukMode === 'DISABLED') bootMsg = 'ПУК ОТКЛЮЧЁН';
+  if (_biosSet.bootDevice1 === 'Floppy (💾)') bootIcon = '💾';
+  else if (_biosSet.bootDevice1 === 'CD-ROM') bootIcon = '💿';
+
   boot.innerHTML =
-    '<div style="font-size:52px">💨</div>' +
+    '<div style="font-size:52px">' + bootIcon + '</div>' +
     '<div style="font-size:20px;font-weight:bold;margin-top:8px">ПУКДОС 95</div>' +
-    '<div style="color:#808080;font-size:11px;margin-top:4px">Microsoft — только не та</div>' +
+    '<div style="color:#808080;font-size:11px;margin-top:4px">' + bootMsg + '</div>' +
     '<div id="boot-bar"><div id="boot-fill"></div></div>' +
     '<div id="boot-status">Инициализация пуков...</div>';
 
   var fill = document.getElementById('boot-fill');
   var st   = document.getElementById('boot-status');
   var msgs = ['Инициализация пуков...','Загрузка ядра ПУКДОС...','Проверка газовых резервов...','Монтирование дисков...','Запуск рабочего стола...'];
+  if (_biosSet.pukMode === 'DISABLED') msgs[0] = 'Пуки отключены. Загрузка в тихом режиме...';
+  if (_biosSet.fartCoprocessor === 'Disabled') msgs[2] = 'Сопроцессор пуков — ОТКЛЮЧЁН';
+  if (_biosSet.bootDevice1 !== 'HDD (💨)') msgs[3] = 'Чтение с ' + _biosSet.bootDevice1 + '...';
+  if (_biosSet.gasLock === 'On') msgs[4] = 'Газовый замок АКТИВЕН. Пуки заблокированы.';
+
+  // Speed depends on Turbo Mode
+  var tickMs = 180;
+  var stepMin = 4, stepMax = 22;
+  if (_biosSet.turboMode === 'MAXIMUM PUK') { tickMs = 80; stepMin = 15; stepMax = 35; }
+  else if (_biosSet.turboMode === 'ECO')    { tickMs = 350; stepMin = 2; stepMax = 8; }
+
+  // Quick POST = skip straight to 100%
+  if (_biosSet.quickPost) {
+    fill.style.width = '100%';
+    st.textContent = msgs[msgs.length - 1];
+    setTimeout(function() {
+      boot.style.transition = 'opacity 0.3s';
+      boot.style.opacity = '0';
+      setTimeout(function() {
+        boot.style.display = 'none';
+        startClock();
+        scheduleRandomErrors();
+        playWin95Sound('startup');
+        setTimeout(function() { openApp('welcome'); }, 300);
+      }, 300);
+    }, 400);
+    return;
+  }
+
   var pct = 0, mi = 0;
   var iv = setInterval(function() {
-    pct += Math.random() * 18 + 4;
+    pct += Math.random() * (stepMax - stepMin) + stepMin;
     if (pct > 100) pct = 100;
     fill.style.width = pct + '%';
     st.textContent = msgs[Math.min(mi++, msgs.length-1)];
@@ -286,7 +369,7 @@ function startBootScreen() {
         }, 400);
       }, 300);
     }
-  }, 180);
+  }, tickMs);
 }
 
 // ==================== WINDOW MANAGER ====================
@@ -345,6 +428,10 @@ function createWin(cfg) {
     else if (parseInt(el.style.zIndex) === _z) { minWin(id); }
     else { focusWin(id); }
   };
+  tb.addEventListener('contextmenu', function(e) {
+    e.preventDefault(); e.stopPropagation();
+    tbWinBtnCtxMenu(e.clientX, e.clientY, id);
+  });
   document.getElementById('taskbar-wins').appendChild(tb);
 
   initDrag(id);
@@ -385,6 +472,8 @@ function maxWin(id) {
   }
 }
 function closeWin(id) {
+  if (id === 'media') rrStop();
+  if (id === 'taskman') { if (_tmTimer) { clearInterval(_tmTimer); _tmTimer = null; } }
   var el=document.getElementById('win_'+id); if(el) el.remove();
   var tb=document.getElementById('tbb_'+id); if(tb) tb.remove();
   delete _wins[id];
@@ -469,8 +558,96 @@ document.getElementById('desktop').addEventListener('contextmenu',function(e){
 });
 document.addEventListener('click',function(e){
   if(!e.target.closest('#ctx95')) hideCtx();
+  if(!e.target.closest('#ctx-popup')) hideCtxPopup();
+});
+document.addEventListener('contextmenu', function(e) {
+  // close generic popup if click outside
+  if (!e.target.closest('#ctx-popup')) hideCtxPopup();
 });
 function hideCtx(){ document.getElementById('ctx95').classList.remove('show'); }
+
+// ==================== GENERIC CONTEXT MENU ====================
+function showCtxPopup(x, y, items) {
+  var m = document.getElementById('ctx-popup');
+  var html = items.map(function(item) {
+    if (item === '-') return '<div class="ctx95-sep"></div>';
+    if (item.title) return '<div class="ctx-title">' + item.title + '</div>';
+    var cls = 'ctx95-item' + (item.disabled ? ' dis' : '');
+    var onclick = item.disabled ? '' : 'onclick="hideCtxPopup();(' + item.fn.toString() + ')()"';
+    return '<div class="' + cls + '" ' + onclick + '>' + item.label + '</div>';
+  }).join('');
+  m.innerHTML = html;
+  // Clamp to viewport
+  var W = window.innerWidth, H = window.innerHeight;
+  m.style.left = '-9999px'; m.style.top = '-9999px'; m.classList.add('show');
+  var mw = m.offsetWidth, mh = m.offsetHeight;
+  m.style.left = Math.min(x, W - mw - 4) + 'px';
+  m.style.top  = Math.min(y, H - mh - 4) + 'px';
+}
+function hideCtxPopup() {
+  document.getElementById('ctx-popup').classList.remove('show');
+}
+
+// ==================== TASKBAR CONTEXT MENU ====================
+function tbCtxMenu(e) {
+  // Don't show on start button, taskbar buttons, systray
+  if (e.target.closest('#start-btn') || e.target.closest('#systray')) return;
+  e.preventDefault();
+  e.stopPropagation();
+  closeSM(); hideCtx();
+
+  var haswins = Object.keys(_wins).length > 0;
+  var tbWinBtn = e.target.closest('.tb-win-btn');
+  if (tbWinBtn) {
+    // Right-click on a window button
+    var id = tbWinBtn.id.replace('tbb_','');
+    tbWinBtnCtxMenu(e.clientX, e.clientY, id);
+    return;
+  }
+
+  // Right-click on empty taskbar area
+  showCtxPopup(e.clientX, e.clientY - 4, [
+    { title: 'Панель задач' },
+    haswins ? { label: 'Каскадом', fn: function(){ tbCascade(); } }
+             : { label: 'Каскадом', disabled: true },
+    haswins ? { label: 'Свернуть все', fn: function(){ tbMinAll(); } }
+             : { label: 'Свернуть все', disabled: true },
+    haswins ? { label: 'Показать рабочий стол', fn: function(){ tbMinAll(); } }
+             : { label: 'Показать рабочий стол', disabled: true },
+    '-',
+    { label: 'Диспетчер пуков', fn: function(){ openApp('taskman'); } },
+    '-',
+    { label: 'Настройки панели задач', fn: function(){ openApp('tbsettings'); } },
+  ]);
+}
+
+function tbWinBtnCtxMenu(x, y, id) {
+  var w = _wins[id]; if (!w) return;
+  var isMin = w.min, isMax = w.max;
+  showCtxPopup(x, y - 4, [
+    { title: (w.icon||'') + ' ' + w.title },
+    isMin  ? { label: 'Восстановить', fn: function(){ restoreWin(id); } }
+           : { label: 'Восстановить', disabled: true },
+    !isMax ? { label: 'Развернуть',   fn: function(){ if(w.min) restoreWin(id); maxWin(id); } }
+           : { label: 'Восстановить размер', fn: function(){ maxWin(id); } },
+    !isMin ? { label: 'Свернуть',     fn: function(){ minWin(id); } }
+           : { label: 'Свернуть',     disabled: true },
+    '-',
+    { label: 'Закрыть', fn: function(){ closeWin(id); } },
+  ]);
+}
+
+function tbCascade() {
+  var ids = Object.keys(_wins).filter(function(id){ return !_wins[id].min; });
+  ids.forEach(function(id, i) {
+    var el = document.getElementById('win_'+id); if (!el) return;
+    el.style.left = (30 + i * 28) + 'px';
+    el.style.top  = (30 + i * 28) + 'px';
+  });
+}
+function tbMinAll() {
+  Object.keys(_wins).forEach(function(id){ if (!_wins[id].min) minWin(id); });
+}
 
 // ==================== CLOCK ====================
 var _clockPopupOpen = false;
@@ -675,13 +852,17 @@ function openApp(name){
   switch(name){
     case 'welcome':  appWelcome(); break;
     case 'mypc':     appMyPC(); break;
-    case 'notepad':  appNotepad(); break;
-    case 'calc':     appCalc(); break;
-    case 'paint':    appPaint(); break;
-    case 'ie':       appIE(); break;
-    case 'doom':     appDoom(); break;
-    case 'sysinfo':  appSysInfo(); break;
-    case 'trash':    appTrash(); break;
+    case 'notepad':    appNotepad(); break;
+    case 'calc':       appCalc(); break;
+    case 'paint':      appPaint(); break;
+    case 'ie':         appIE(); break;
+    case 'doom':       appDoom(); break;
+    case 'sysinfo':    appSysInfo(); break;
+    case 'trash':      appTrash(); break;
+    case 'media':      appMedia(); break;
+    case 'taskman':    appTaskMan(); break;
+    case 'ctrl':       appCtrlPanel(); break;
+    case 'tbsettings': appTbSettings(); break;
   }
 }
 
@@ -874,7 +1055,29 @@ function appCalc(){
           '<button class="calc-btn" onclick="cf(\'.\')">.</button>'+
           '<button class="calc-btn orange" onclick="cf(\'=\')">=</button>'+
         '</div>'+
-      '</div>'
+      '</div>',
+    afterOpen: function() {
+      var calcKeyHandler = function(e) {
+        if (!document.getElementById('win_calc')) { document.removeEventListener('keydown', calcKeyHandler); return; }
+        // Only handle if calc window is focused (not inactive)
+        var el = document.getElementById('win_calc');
+        if (el && el.classList.contains('inactive')) return;
+        var k = e.key;
+        if (k >= '0' && k <= '9') { cf(k); e.preventDefault(); }
+        else if (k === '+' || k === '-' || k === '*' || k === '/') { cf(k); e.preventDefault(); }
+        else if (k === 'Enter' || k === '=') { cf('='); e.preventDefault(); }
+        else if (k === 'Backspace') {
+          if (cv.length > 1 && cv !== '0') { cv = cv.slice(0, -1); }
+          else { cv = '0'; }
+          var d = document.getElementById('calc-d'); if (d) d.textContent = cv;
+          e.preventDefault();
+        }
+        else if (k === 'Escape' || k === 'Delete') { cf('C'); e.preventDefault(); }
+        else if (k === '.') { cf('.'); e.preventDefault(); }
+        else if (k === '%') { cf('%'); e.preventDefault(); }
+      };
+      document.addEventListener('keydown', calcKeyHandler);
+    }
   });
 }
 function cf(b){
@@ -909,6 +1112,7 @@ function appPaint(){
   createWin({id:'paint',title:'Безымянный — Пейнт',icon:'🎨',w:540,h:440,status:'Инструмент: Карандаш',
     menu:
       '<div class="win-mi" onclick="toggleMI(this)">Файл<div class="win-dd">'+
+        '<div class="win-dd-item" onclick="pOpen()">Открыть...</div>'+
         '<div class="win-dd-item" onclick="pSave()">Сохранить как PNG</div>'+
         '<div class="win-dd-sep"></div>'+
         '<div class="win-dd-item" onclick="closeWin(\'paint\')">Выход</div></div></div>'+
@@ -985,6 +1189,34 @@ function pSave(){
   var cv=document.getElementById('pcv'); if(!cv) return;
   var a=document.createElement('a'); a.href=cv.toDataURL('image/png'); a.download='пук-рисунок.png'; a.click();
   win95toast('Сохранено: пук-рисунок.png');
+}
+
+function pOpen(){
+  var inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*';
+  inp.onchange = function() {
+    var file = inp.files[0]; if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var img = new Image();
+      img.onload = function() {
+        var cv = document.getElementById('pcv'); if (!cv || !_pCtx) return;
+        _pCtx.fillStyle = '#fff';
+        _pCtx.fillRect(0, 0, cv.width, cv.height);
+        // Scale to fit canvas preserving aspect ratio
+        var scale = Math.min(cv.width / img.width, cv.height / img.height);
+        var dw = img.width * scale, dh = img.height * scale;
+        var dx = (cv.width - dw) / 2, dy = (cv.height - dh) / 2;
+        _pCtx.drawImage(img, dx, dy, dw, dh);
+        var wb = document.querySelector('#win_paint .win-titlebar-text');
+        if (wb) wb.textContent = file.name + ' — Пейнт';
+        win95toast('Открыт файл: ' + file.name);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+  inp.click();
 }
 
 // ==================== IE ====================
@@ -1535,3 +1767,477 @@ function scheduleRandomErrors(){
   }, 45000+Math.random()*30000);
 }
 
+
+// ==================== MEDIA PLAYER (RICKROLL) ====================
+var _rr = { ctx:null, nodes:[], playing:false, timer:null, gain:null, progIv:null };
+
+var _rrMel = [[5538,554.37,692],[6231,622.25,692],[6923,415.3,462],[7385,622.25,692],[8077,698.46,692],[8769,830.61,115],[8885,739.99,115],[9000,698.46,115],[9115,554.37,808],[9231,349.23,577],[9923,622.25,692],[10615,415.3,1615],[11769,349.23,1038],[12462,830.61,115],[12577,739.99,115],[12692,698.46,115],[12808,554.37,115],[12923,349.23,462],[13615,622.25,692],[14308,415.3,115],[14423,369.99,115],[14538,349.23,115],[14769,622.25,692],[15462,698.46,692],[16154,830.61,115],[16269,739.99,115],[16385,698.46,115],[16500,554.37,808],[16615,349.23,462],[17308,622.25,692],[18000,415.3,1962],[18692,349.23,115],[18923,349.23,1269],[19615,1108.73,115],[19731,1108.73,115],[19846,1108.73,115],[19962,1108.73,115],[20192,1108.73,115],[20308,349.23,1615],[24000,349.23,1615],[25846,415.3,346],[26308,415.3,115],[27692,349.23,1615],[31385,830.61,1846],[33462,698.46,231],[33923,622.25,231],[34385,554.37,231],[35077,466.16,1615],[36462,349.23,231],[36923,415.3,1731],[37615,349.23,231],[38769,466.16,1731],[40615,466.16,231],[40961,466.16,115],[41077,349.23,231],[41308,523.25,1038],[41769,830.61,115],[41885,830.61,115],[42461,1108.73,692],[42923,554.37,231],[43154,1244.51,692],[43846,830.61,462],[44308,1244.51,692],[44769,523.25,231],[45000,1396.91,692],[45692,1661.22,115],[45808,1479.98,115],[45923,1396.91,115],[46038,1108.73,808],[46154,349.23,577],[46846,1244.51,692],[47538,830.61,1615],[48000,523.25,346],[48461,554.37,1038],[48692,349.23,808],[49154,830.61,115],[49269,830.61,115],[49385,1661.22,115],[49500,1479.98,115],[49615,1396.91,115],[49731,1108.73,808],[49846,554.37,346],[50308,554.37,231],[50538,1244.51,692],[51231,830.61,462],[51692,1244.51,692],[52154,622.25,231],[52385,1396.91,692],[52731,523.25,115],[52846,466.16,231],[53077,1661.22,115],[53192,1479.98,115],[53308,1396.91,115],[53423,1108.73,808],[53538,349.23,577],[54231,1244.51,692],[54923,830.61,1962],[55385,523.25,346],[55846,415.3,923],[56538,1108.73,115],[56654,1108.73,115],[56769,1108.73,115],[56885,1108.73,115],[57115,1108.73,115],[57231,349.23,1615],[60923,349.23,1615],[62769,415.3,346],[63231,415.3,115],[63923,349.23,231],[64615,349.23,1615],[68308,830.61,1846],[70385,698.46,231],[70846,622.25,231],[71308,554.37,231],[72000,466.16,1615],[73385,349.23,231],[73846,415.3,1731],[74538,349.23,231],[75692,466.16,1731],[77538,466.16,231],[77885,466.16,115],[78000,349.23,231],[78231,523.25,1038],[78692,830.61,115],[78808,830.61,115],[79385,1108.73,692],[79846,554.37,231],[80077,1244.51,692],[80769,830.61,462],[81231,1244.51,692],[81692,523.25,231],[81923,1396.91,692],[82615,1661.22,115],[82731,1479.98,115],[82846,1396.91,115],[82961,1108.73,808],[83077,349.23,577],[83769,1244.51,692],[84461,830.61,1615],[84923,523.25,346],[85385,554.37,1038],[85615,349.23,808],[86077,830.61,115],[86192,830.61,115],[86308,1661.22,115],[86423,1479.98,115],[86538,1396.91,115],[86654,1108.73,808],[86769,554.37,346],[87231,554.37,231],[87461,1244.51,692],[88154,830.61,462],[88615,1244.51,692],[89077,622.25,231],[89308,1396.91,692],[89654,523.25,115],[89769,466.16,231],[90000,1661.22,115],[90115,1479.98,115],[90231,1396.91,115],[90346,1108.73,808],[90461,349.23,577],[91154,1244.51,692],[91846,830.61,1962],[92308,523.25,346],[92769,415.3,923],[93461,1108.73,115],[93577,1108.73,115],[93692,1108.73,115],[93808,1108.73,115],[94038,1108.73,115],[94154,1108.73,692],[94615,554.37,231],[94846,1244.51,692],[95538,830.61,462],[96000,1244.51,692],[96461,523.25,231],[96692,1396.91,692],[97385,1661.22,115],[97500,1479.98,115],[97615,1396.91,115],[97731,1108.73,808],[97846,349.23,577],[98538,1244.51,692],[99231,830.61,1615],[99692,523.25,346],[100154,554.37,1038],[100385,349.23,808],[100846,830.61,115],[100961,830.61,115],[101077,1661.22,115],[101192,1479.98,115],[101308,1396.91,115],[101423,1108.73,808],[101538,554.37,346],[102000,554.37,231],[102231,1244.51,692],[102923,830.61,462],[103385,1244.51,692],[103846,622.25,231],[104077,1396.91,692],[104423,523.25,115],[104538,466.16,231],[104769,1661.22,115],[104885,1479.98,115],[105000,1396.91,115],[105115,1108.73,808],[105231,349.23,577],[105923,1244.51,692],[106615,830.61,1962],[107077,523.25,346],[107538,415.3,923],[108231,1108.73,115],[108346,1108.73,115],[108461,1108.73,115],[108577,1108.73,115],[108808,1108.73,115],[108923,415.3,1500],[109269,349.23,115],[109615,349.23,115],[109846,349.23,231],[110192,349.23,115],[110423,369.99,115],[110538,349.23,115],[110769,554.37,346],[111000,349.23,115],[111115,554.37,346],[111231,349.23,231],[111461,523.25,346],[112615,415.3,1500],[116308,415.3,1500],[120000,415.3,1500],[129231,349.23,577],[138461,932.33,1846],[140308,1244.51,923],[141231,1396.91,923],[142154,932.33,1846],[145846,1108.73,692],[146538,1244.51,692],[147692,1244.51,692],[148384,1396.91,692],[150231,1244.51,692],[153923,1244.51,692],[155077,1244.51,692],[155769,1396.91,692],[157615,1244.51,692],[161308,1244.51,692],[162461,1244.51,692],[163154,1396.91,692],[165000,1244.51,692],[168692,1244.51,692],[169846,1244.51,692],[170538,1396.91,692],[172384,1244.51,692],[176077,1244.51,692],[177231,1244.51,692],[177923,1396.91,692],[179769,1244.51,692],[183461,1244.51,692],[184615,1244.51,692],[185308,1396.91,692],[187154,1244.51,692],[190846,1244.51,692],[191538,1661.22,462],[192000,1661.22,1731]];
+var _rrBas = [[5538,233.08,577],[5769,116.54,923],[6231,207.65,1038],[7385,207.65,577],[9231,233.08,577],[9462,116.54,923],[9923,207.65,1038],[11077,207.65,577],[12462,233.08,115],[12923,233.08,462],[13154,116.54,923],[13615,207.65,1038],[14769,207.65,462],[16385,116.54,462],[16615,233.08,462],[16846,116.54,923],[17308,207.65,1038],[18692,116.54,462],[18923,233.08,1269],[20308,185.0,1615],[24000,185.0,1615],[27692,185.0,1615],[31385,185.0,1731],[42461,233.08,577],[44308,174.61,462],[46154,233.08,577],[48000,174.61,462],[49846,233.08,577],[51692,174.61,462],[53538,233.08,577],[55846,233.08,1269],[57231,185.0,1615],[60923,185.0,1615],[64615,185.0,1615],[68308,185.0,1731],[79385,233.08,577],[81231,174.61,577],[83077,233.08,577],[84923,174.61,577],[86769,233.08,577],[88615,174.61,577],[90461,233.08,577],[94154,233.08,577],[96000,207.65,577],[97846,233.08,577],[99692,207.65,577],[101538,233.08,577],[103385,207.65,577],[105231,233.08,577],[108923,233.08,231],[112154,138.59,3692],[112500,155.56,3462],[115846,138.59,3692],[116192,155.56,3462],[119538,138.59,3692],[119884,155.56,3462],[123346,155.56,68654],[145846,233.08,577],[147692,174.61,462],[149538,233.08,577],[151384,174.61,462],[153231,233.08,577],[155077,174.61,462],[156923,233.08,577],[160615,233.08,577],[162461,207.65,577],[164308,233.08,577],[166154,207.65,577],[168000,233.08,577],[169846,207.65,577],[171692,233.08,577],[175384,233.08,577],[177231,207.65,577],[179077,233.08,577],[180923,207.65,577],[182769,233.08,577],[184615,207.65,577],[186461,233.08,577],[190154,1396.91,346],[190846,116.54,1154]];
+var _rrMinMs = 5538, _rrLoopMs = 188693;
+
+function rrPlay() {
+  if (_rr.playing) return;
+  _rr.playing = true;
+  _rr.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  _rr.gain = _rr.ctx.createGain();
+  var vol = document.getElementById('rrVol');
+  _rr.gain.gain.value = (vol ? vol.value / 100 : 0.4) * 0.25;
+  var filt = _rr.ctx.createBiquadFilter();
+  filt.type = 'lowpass'; filt.frequency.value = 1600;
+  _rr.gain.connect(filt); filt.connect(_rr.ctx.destination);
+  _rr.nodes.push(_rr.gain, filt);
+  var overlay = document.getElementById('rrOverlay');
+  if (overlay) overlay.style.display = 'none';
+
+  function sched(freq, t0, dur, type, vol) {
+    if (!_rr.playing || !_rr.ctx) return;
+    var osc = _rr.ctx.createOscillator();
+    var g   = _rr.ctx.createGain();
+    osc.type = type; osc.frequency.value = freq;
+    g.gain.setValueAtTime(0, t0);
+    g.gain.linearRampToValueAtTime(vol, t0 + 0.01);
+    g.gain.setValueAtTime(vol, t0 + dur * 0.80);
+    g.gain.linearRampToValueAtTime(0, t0 + dur);
+    osc.connect(g); g.connect(_rr.gain);
+    osc.start(t0); osc.stop(t0 + dur + 0.02);
+    _rr.nodes.push(osc);
+  }
+
+  var allNotes = _rrMel.map(function(n){ return [n[0],n[1],n[2],'square',0.22]; })
+                  .concat(_rrBas.map(function(n){ return [n[0],n[1],n[2],'sawtooth',0.09]; }));
+  var loopSec = _rrLoopMs / 1000;
+  var LOOKAHEAD = 4.0, TICK_MS = 2000;
+  var startT = _rr.ctx.currentTime + 0.05;
+  var scheduledUpTo = startT;
+
+  function tick() {
+    if (!_rr.playing || !_rr.ctx) return;
+    var until = _rr.ctx.currentTime + LOOKAHEAD;
+    if (until > scheduledUpTo) {
+      var firstIter = Math.max(0, Math.floor((scheduledUpTo - startT) / loopSec));
+      for (var i = firstIter; i < firstIter + 3; i++) {
+        var base = startT + i * loopSec;
+        allNotes.forEach(function(n) {
+          var ns = base + (n[0] - _rrMinMs) / 1000;
+          if (ns >= scheduledUpTo && ns < until) sched(n[1], ns, n[2]/1000, n[3], n[4]);
+        });
+      }
+      scheduledUpTo = until;
+    }
+    _rr.timer = setTimeout(tick, TICK_MS);
+  }
+  tick();
+
+  var prog = document.getElementById('rrProg');
+  _rr.progIv = setInterval(function() {
+    if (!_rr.playing || !_rr.ctx) { clearInterval(_rr.progIv); return; }
+    if (prog) {
+      var elapsed = (_rr.ctx.currentTime - startT + _rrMinMs/1000) % loopSec;
+      prog.style.width = Math.min(100, (elapsed / loopSec) * 100) + '%';
+    }
+  }, 200);
+}
+
+function rrStop() {
+  _rr.playing = false;
+  if (_rr.timer) { clearTimeout(_rr.timer); _rr.timer = null; }
+  if (_rr.progIv) { clearInterval(_rr.progIv); _rr.progIv = null; }
+  _rr.nodes.forEach(function(n){ try{ if(n.stop) n.stop(0); }catch(e){} });
+  _rr.nodes = [];
+  if (_rr.ctx) { _rr.ctx.close(); _rr.ctx = null; }
+  _rr.gain = null;
+  var prog = document.getElementById('rrProg');
+  if (prog) prog.style.width = '0%';
+  var overlay = document.getElementById('rrOverlay');
+  if (overlay) overlay.style.display = 'flex';
+}
+
+function rrSetVol(v) {
+  if (_rr.gain) _rr.gain.gain.value = v / 100 * 0.25;
+}
+
+function appMedia() {
+  var gifUrl = 'https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExd3UxdDh6MGN5OW1zdW1md3BoN2lxdWN3dWYxMXY5YnBudzF3OWIyZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/10kABVanhwykJW/giphy.gif';
+  createWin({
+    id: 'media',
+    title: 'Медиаплеер',
+    icon: '🎵',
+    w: 340, h: 390, resize: false,
+    menu:
+      '<div class="win-mi" onclick="toggleMI(this)">Файл<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="closeWin(\'media\')">Выход</div></div></div>' +
+      '<div class="win-mi" onclick="toggleMI(this)">Воспроизведение<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="rrPlay()">&#9654; Воспроизвести</div>' +
+        '<div class="win-dd-item" onclick="rrStop()">&#9632; Остановить</div></div></div>' +
+      '<div class="win-mi" onclick="toggleMI(this)">Справка<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="win95toast(\'ПУКПРОМ Медиаплеер v1.0\\nФорматы: .PUK .GAS .RRK\')">О программе</div></div></div>',
+    content:
+      '<div style="background:#111;height:100%;display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px;box-sizing:border-box">' +
+        '<div style="position:relative;border:3px solid #ff0080;box-shadow:0 0 18px #ff0080;flex-shrink:0">' +
+          '<img src="' + gifUrl + '" style="width:220px;height:220px;object-fit:cover;display:block;image-rendering:pixelated" alt="Rick Astley">' +
+          '<div id="rrOverlay" style="position:absolute;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="rrPlay()">' +
+            '<button style="font-family:\'Courier New\',monospace;font-size:13px;background:#ff0080;color:#fff;border:2px solid #fff;padding:10px 18px;cursor:pointer">&#9654; PLAY</button>' +
+          '</div>' +
+        '</div>' +
+        '<div style="width:100%;background:#000;border:1px solid #333;padding:3px 6px;font-size:9px;color:#00ffff;font-family:\'Courier New\',monospace;overflow:hidden;white-space:nowrap" id="rrMarq">Rick Astley -- Never Gonna Give You Up (8-bit Edition)</div>' +
+        '<div style="width:100%;height:7px;background:#222;border:1px solid #444;flex-shrink:0">' +
+          '<div id="rrProg" style="height:100%;background:linear-gradient(90deg,#ff0080,#00ffff);width:0%;transition:width .1s linear"></div>' +
+        '</div>' +
+        '<div style="display:flex;gap:6px;align-items:center;width:100%;flex-shrink:0">' +
+          '<button onclick="rrPlay()" style="font-family:\'Courier New\',monospace;font-size:9px;padding:4px 10px;background:transparent;border:2px solid #00ff88;color:#00ff88;cursor:pointer">&#9654;</button>' +
+          '<button onclick="rrStop()" style="font-family:\'Courier New\',monospace;font-size:9px;padding:4px 10px;background:transparent;border:2px solid #ff0080;color:#ff0080;cursor:pointer">&#9632;</button>' +
+          '<span style="font-size:8px;color:#666;font-family:\'Courier New\',monospace">VOL:</span>' +
+          '<input type="range" id="rrVol" min="0" max="100" value="40" oninput="rrSetVol(this.value)" style="flex:1;cursor:pointer;accent-color:#ff0080">' +
+        '</div>' +
+        '<div style="font-size:7px;color:#444;font-family:\'Courier New\',monospace;text-align:center">ПУКПРОМ МЕДИАПЛЕЕР v1.0 -- Rick Astley, 1987</div>' +
+      '</div>',
+    afterOpen: function() {
+      var el = document.getElementById('rrMarq');
+      if (!el) return;
+      var text = el.textContent + '     ';
+      var pos = 0;
+      var iv = setInterval(function() {
+        if (!document.getElementById('rrMarq')) { clearInterval(iv); return; }
+        pos = (pos + 1) % text.length;
+        el.textContent = text.slice(pos) + text.slice(0, pos);
+      }, 130);
+    }
+  });
+}
+
+
+// ==================== TASK MANAGER (ДИСПЕТЧЕР ПУКОВ) ====================
+var _tmTimer = null;
+
+function appTaskMan() {
+  createWin({
+    id: 'taskman',
+    title: 'Диспетчер пуков',
+    icon: '📊',
+    w: 420, h: 320,
+    menu:
+      '<div class="win-mi" onclick="toggleMI(this)">Файл<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="win95toast(\'Новая задача создана: пук.exe\')">Новая задача...</div>' +
+        '<div class="win-dd-sep"></div>' +
+        '<div class="win-dd-item" onclick="closeWin(\'taskman\')">Выход</div></div></div>' +
+      '<div class="win-mi" onclick="toggleMI(this)">Вид<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="tmRefresh()">Обновить</div>' +
+        '<div class="win-dd-item" onclick="win95toast(\'Частота обновления: 2 пука в секунду\')">Частота обновления</div></div></div>' +
+      '<div class="win-mi" onclick="toggleMI(this)">Справка<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="win95toast(\'Диспетчер пуков v1.0\\nПозволяет управлять пуками в системе\')">О программе</div></div></div>',
+    content:
+      '<div style="display:flex;flex-direction:column;height:100%;font-size:11px">' +
+        // Tabs
+        '<div id="tm-tabs" style="display:flex;border-bottom:1px solid #808080;background:#c0c0c0;flex-shrink:0">' +
+          '<div class="tm-tab active" onclick="tmTab(\'proc\',this)" style="padding:4px 12px;border-right:1px solid #808080;cursor:default;border-bottom:2px solid #c0c0c0">Приложения</div>' +
+          '<div class="tm-tab" onclick="tmTab(\'perf\',this)" style="padding:4px 12px;border-right:1px solid #808080;cursor:default">Быстродействие</div>' +
+        '</div>' +
+        // Content
+        '<div id="tm-body" style="flex:1;overflow:hidden;display:flex;flex-direction:column"></div>' +
+        // Bottom bar
+        '<div style="border-top:1px solid #808080;padding:4px 8px;background:#c0c0c0;display:flex;gap:8px;flex-shrink:0;align-items:center">' +
+          '<span id="tm-proccount" style="flex:1;font-size:10px">Процессов: 0</span>' +
+          '<button class="w-btn" onclick="tmKillSelected()" style="width:120px">Снять задачу</button>' +
+          '<button class="w-btn" onclick="tmRefresh()" style="width:80px">Обновить</button>' +
+        '</div>' +
+      '</div>',
+    afterOpen: function() {
+      tmTab('proc', document.querySelector('#win_taskman .tm-tab'));
+      _tmTimer = setInterval(function() {
+        if (!document.getElementById('win_taskman')) { clearInterval(_tmTimer); return; }
+        tmRefresh();
+      }, 2000);
+    }
+  });
+}
+
+var _tmSelId = null;
+var _tmCurTab = 'proc';
+
+function tmTab(tab, el) {
+  _tmCurTab = tab;
+  document.querySelectorAll('#win_taskman .tm-tab').forEach(function(t) {
+    t.style.borderBottom = t === el ? '2px solid #c0c0c0' : '';
+    t.style.background = t === el ? '#c0c0c0' : '';
+    t.style.fontWeight = t === el ? 'bold' : '';
+  });
+  tmRefresh();
+}
+
+function tmRefresh() {
+  var body = document.getElementById('tm-body');
+  if (!body) return;
+  if (_tmCurTab === 'proc') tmRenderProc(body);
+  else tmRenderPerf(body);
+}
+
+function tmRenderProc(body) {
+  // Build fake processes: system ones + open windows
+  var sysprocs = [
+    { name: 'System Idle Process', pid: '0',   cpu: Math.floor(Math.random()*5),   mem: '16 KB',  status: 'Running' },
+    { name: 'пукдос.exe',          pid: '4',   cpu: Math.floor(Math.random()*3),   mem: '420 KB', status: 'Running' },
+    { name: 'пукпром.dll',         pid: '8',   cpu: 0,                              mem: '69 KB',  status: 'Running' },
+    { name: 'газ-менеджер.exe',    pid: '12',  cpu: Math.floor(Math.random()*8),   mem: '256 KB', status: 'Running' },
+    { name: 'svcpuk32.exe',        pid: '24',  cpu: 0,                              mem: '128 KB', status: 'Running' },
+    { name: 'explorer.puk',        pid: '100', cpu: Math.floor(Math.random()*4),   mem: '512 KB', status: 'Running' },
+  ];
+  var winprocs = Object.keys(_wins).map(function(id, i) {
+    return { name: (_wins[id].icon||'') + ' ' + _wins[id].title + '.exe', pid: String(200+i*4), cpu: Math.floor(Math.random()*6), mem: Math.floor(Math.random()*1024+128)+' KB', status: 'Running', winId: id };
+  });
+  var all = sysprocs.concat(winprocs);
+
+  var count = document.getElementById('tm-proccount');
+  if (count) count.textContent = 'Процессов: ' + all.length;
+
+  var rows = all.map(function(p) {
+    var isSel = _tmSelId === p.pid;
+    var bg = isSel ? 'background:#000080;color:#fff;' : '';
+    return '<div style="display:flex;padding:2px 4px;cursor:default;' + bg + '" onclick="tmSel(\'' + p.pid + '\')" data-pid="' + p.pid + '">' +
+      '<span style="flex:2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + p.name + '</span>' +
+      '<span style="width:44px;text-align:right">' + p.pid + '</span>' +
+      '<span style="width:44px;text-align:right">' + p.cpu + '%</span>' +
+      '<span style="width:70px;text-align:right">' + p.mem + '</span>' +
+    '</div>';
+  }).join('');
+
+  body.innerHTML =
+    '<div style="display:flex;padding:2px 4px;background:#c0c0c0;border-bottom:1px solid #808080;font-weight:bold;flex-shrink:0">' +
+      '<span style="flex:2">Имя процесса</span>' +
+      '<span style="width:44px;text-align:right">PID</span>' +
+      '<span style="width:44px;text-align:right">ЦП</span>' +
+      '<span style="width:70px;text-align:right">Память</span>' +
+    '</div>' +
+    '<div style="flex:1;overflow-y:auto;font-family:\'Courier New\',monospace;font-size:10px">' + rows + '</div>';
+}
+
+function tmRenderPerf(body) {
+  var cpuLoad = Math.floor(Math.random() * 30 + 5);
+  var memUsed = Math.floor(Math.random() * 20 + 40);
+  var gasLoad = Math.floor(Math.random() * 60 + 20);
+
+  function bar(pct, color) {
+    return '<div style="background:#000;border:1px solid #808080;height:60px;width:100%;position:relative;margin:4px 0">' +
+      '<div style="position:absolute;bottom:0;left:0;right:0;height:' + pct + '%;background:' + color + '"></div>' +
+      '<span style="position:absolute;top:2px;left:4px;color:#0f0;font-size:9px">' + pct + '%</span>' +
+    '</div>';
+  }
+
+  body.innerHTML =
+    '<div style="padding:8px;overflow-y:auto">' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">' +
+        '<div><div style="font-size:9px;font-weight:bold">Загрузка ЦП</div>' + bar(cpuLoad,'#00aa00') + '</div>' +
+        '<div><div style="font-size:9px;font-weight:bold">Использ. памяти</div>' + bar(memUsed,'#0000cc') + '</div>' +
+        '<div><div style="font-size:9px;font-weight:bold">Газовый резерв</div>' + bar(gasLoad,'#cc6600') + '</div>' +
+      '</div>' +
+      '<hr style="margin:8px 0">' +
+      '<div style="font-size:10px;line-height:1.8">' +
+        '<div>Всего памяти: 65 536 KB &nbsp;|&nbsp; Доступно: ' + Math.floor(65536 * (1 - memUsed/100)) + ' KB</div>' +
+        '<div>Ядро ПУКДОС: v4.0.950 &nbsp;|&nbsp; Режим пука: ' + _biosSet.pukMode + '</div>' +
+        '<div>Turbo: ' + _biosSet.turboMode + ' &nbsp;|&nbsp; Газ: ' + _biosSet.gasCompression + '</div>' +
+        '<div>Открытых окон: ' + Object.keys(_wins).length + '</div>' +
+      '</div>' +
+    '</div>';
+}
+
+function tmSel(pid) {
+  _tmSelId = pid;
+  tmRefresh();
+}
+
+function tmKillSelected() {
+  if (!_tmSelId) { win95toast('Выберите процесс для снятия.'); return; }
+  // Find if it's a window process
+  var killed = false;
+  Object.keys(_wins).forEach(function(id, i) {
+    if (String(200 + i * 4) === _tmSelId) {
+      closeWin(id);
+      win95toast('Задача снята: ' + _wins[id]?.title || id);
+      killed = true;
+    }
+  });
+  if (!killed) {
+    if (_tmSelId === '0') { win95toast('Нельзя снять System Idle Process.\nПуки не остановятся.'); }
+    else { win95toast('Процесс ' + _tmSelId + ' снят.\nОшибка: пук продолжает пукать.'); }
+  }
+  _tmSelId = null;
+  tmRefresh();
+}
+
+// ==================== TASKBAR SETTINGS ====================
+var _tbSet = (function(){
+  try { return JSON.parse(localStorage.getItem('pukdos_tbset') || 'null') || {}; } catch(e) { return {}; }
+})();
+_tbSet = Object.assign({ alwaysOnTop:true, autoHide:false, showClock:true, showSound:true, smallButtons:false }, _tbSet);
+
+function applyTbSettings() {
+  localStorage.setItem('pukdos_tbset', JSON.stringify(_tbSet));
+  var tb = document.getElementById('taskbar');
+  if (_tbSet.alwaysOnTop) tb.style.zIndex = '9999'; else tb.style.zIndex = '100';
+  if (_tbSet.autoHide) {
+    tb.style.bottom = '-26px'; tb.style.transition = 'bottom 0.2s';
+    tb.onmouseenter = function(){ tb.style.bottom = '0'; };
+    tb.onmouseleave = function(){ tb.style.bottom = '-26px'; };
+  } else {
+    tb.style.bottom = '0'; tb.style.transition = '';
+    tb.onmouseenter = null; tb.onmouseleave = null;
+  }
+  var clk = document.getElementById('sysclock');
+  if (clk) clk.style.display = _tbSet.showClock ? '' : 'none';
+  var vol = document.getElementById('vol-btn');
+  if (vol) vol.style.display = _tbSet.showSound ? '' : 'none';
+  document.querySelectorAll('.tb-win-btn').forEach(function(b) {
+    b.style.height = _tbSet.smallButtons ? '18px' : '';
+    b.style.fontSize = _tbSet.smallButtons ? '9px' : '';
+  });
+}
+applyTbSettings();
+
+function appTbSettings() {
+  if (document.getElementById('win_tbsettings')) { focusWin('tbsettings'); return; }
+  function chk(key, label) {
+    return '<label style="display:flex;align-items:center;gap:8px;margin:6px 0;cursor:default">' +
+      '<input type="checkbox" id="tbchk_'+key+'" style="width:13px;height:13px" ' +
+      (_tbSet[key] ? 'checked' : '') + ' onclick="_tbSet.'+key+'=this.checked;applyTbSettings()"> '+label+'</label>';
+  }
+  createWin({ id:'tbsettings', title:'Настройки панели задач', icon:'📌', w:320, h:270, resize:false,
+    x: Math.floor(window.innerWidth/2-160), y: Math.floor((window.innerHeight-28)/2-135),
+    content: '<div style="padding:12px 16px;font-size:12px">' +
+      '<div style="font-weight:bold;margin-bottom:8px;border-bottom:1px solid #808080;padding-bottom:4px">Параметры</div>' +
+      chk('alwaysOnTop','Всегда поверх других окон') +
+      chk('autoHide','Автоматически скрывать панель задач') +
+      '<div style="font-weight:bold;margin:10px 0 6px;border-bottom:1px solid #808080;padding-bottom:4px">Область уведомлений</div>' +
+      chk('showClock','Показывать часы') +
+      chk('showSound','Показывать значок громкости') +
+      '<div style="font-weight:bold;margin:10px 0 6px;border-bottom:1px solid #808080;padding-bottom:4px">Вид</div>' +
+      chk('smallButtons','Мелкие кнопки окон') +
+      '<div style="position:absolute;bottom:8px;right:8px;display:flex;gap:4px">' +
+        '<button onclick="applyTbSettings();closeWin(\'tbsettings\')" style="min-width:70px">OK</button>' +
+        '<button onclick="closeWin(\'tbsettings\')" style="min-width:70px">Отмена</button>' +
+      '</div>' +
+    '</div>'
+  });
+}
+
+// ==================== CONTROL PANEL ====================
+function appCtrlPanel() {
+  if (document.getElementById('win_ctrl')) { focusWin('ctrl'); return; }
+  var items = [
+    { icon:'🖥️', label:'Экран',         fn:'cpScreen()' },
+    { icon:'🔊', label:'Звук',           fn:'cpSound()' },
+    { icon:'🖱️', label:'Мышь',          fn:'cpMouse()' },
+    { icon:'⌨️', label:'Клавиатура',    fn:'cpKeyboard()' },
+    { icon:'🕐', label:'Дата и время',   fn:'cpDateTime()' },
+    { icon:'🌐', label:'Сеть',           fn:'cpNetwork()' },
+    { icon:'🖨️', label:'Принтеры',      fn:'cpPrinters()' },
+    { icon:'⚙️', label:'Система',        fn:'openApp(\'sysinfo\')' },
+    { icon:'💾', label:'Хранилище',      fn:'cpStorage()' },
+    { icon:'🔧', label:'BIOS',           fn:'cpBios()' },
+    { icon:'💨', label:'Газ и Пуки',     fn:'cpGas()' },
+    { icon:'🔑', label:'Пароли',         fn:'cpPasswords()' },
+  ];
+  var icons = items.map(function(it) {
+    return '<div style="display:inline-flex;flex-direction:column;align-items:center;width:72px;height:72px;' +
+      'justify-content:center;cursor:default;margin:4px;padding:4px;border:1px solid transparent" class="cp-icon" onclick="'+it.fn+'">' +
+      '<span style="font-size:26px">'+it.icon+'</span>' +
+      '<span style="font-size:10px;text-align:center;margin-top:3px;word-break:break-word">'+it.label+'</span>' +
+    '</div>';
+  }).join('');
+
+  createWin({ id:'ctrl', title:'Панель управления', icon:'⚙️', w:470, h:340,
+    x: Math.floor(window.innerWidth/2-235), y: Math.floor((window.innerHeight-28)/2-170),
+    status:'',
+    content:
+      '<div style="background:#c0c0c0;padding:3px 8px;border-bottom:1px solid #808080;font-size:11px;display:flex;gap:14px">' +
+        '<span style="cursor:default" onclick="win95toast(\'Файл\')">Файл</span>' +
+        '<span style="cursor:default" onclick="win95toast(\'Правка\')">Правка</span>' +
+        '<span style="cursor:default" onclick="win95toast(\'Вид\')">Вид</span>' +
+        '<span style="cursor:default" onclick="win95toast(\'Справка ПУКДОС 95\')">Справка</span>' +
+      '</div>' +
+      '<div style="padding:8px;display:flex;flex-wrap:wrap;overflow-y:auto;height:calc(100% - 26px);align-content:flex-start">' + icons + '</div>'
+  });
+
+  setTimeout(function() {
+    document.querySelectorAll('.cp-icon').forEach(function(el) {
+      el.addEventListener('mouseenter', function(){ this.style.background='#000080'; this.style.color='#fff'; this.style.borderColor='#fff'; });
+      el.addEventListener('mouseleave', function(){ this.style.background=''; this.style.color=''; this.style.borderColor='transparent'; });
+    });
+  }, 100);
+}
+
+var _cpColors = [
+  { desk:'#008080' }, { desk:'#003060' }, { desk:'#1a1a2e' }, { desk:'#006400' }
+];
+function cpApplyColor(i) {
+  var c = _cpColors[i];
+  document.getElementById('desktop').style.background = c.desk;
+}
+function cpScreen() {
+  if (document.getElementById('win_cpscreen')) { focusWin('cpscreen'); return; }
+  var desktops = ['Классический ПУКДОС', 'Лесные пуки', 'Звёздный газ', 'Кислотный пук'];
+  var colors = ['Серый классик (по умолчанию)','Ночной синий','Тёмный пук','Зелёный газ'];
+  createWin({ id:'cpscreen', title:'Экран — Свойства', icon:'🖥️', w:320, h:260, resize:false,
+    x: Math.floor(window.innerWidth/2-160), y: Math.floor((window.innerHeight-28)/2-130),
+    content: '<div style="padding:12px;font-size:12px">' +
+      '<div style="font-weight:bold;margin-bottom:6px">Цветовая схема рабочего стола</div>' +
+      colors.map(function(c,i){
+        return '<label style="display:flex;align-items:center;gap:6px;cursor:default;margin:3px 0">' +
+          '<input type="radio" name="cpclr" value="'+i+'"'+(i===0?' checked':'')+' onclick="cpApplyColor('+i+')"> '+c+'</label>';
+      }).join('') +
+      '<div style="font-weight:bold;margin:10px 0 6px">Заставка</div>' +
+      '<select style="width:100%;font-size:11px" onchange="win95toast(\'Заставка изменена\')">' +
+        desktops.map(function(d){return '<option>'+d+'</option>';}).join('') +
+      '</select>' +
+      '<div style="position:absolute;bottom:8px;right:8px"><button onclick="closeWin(\'cpscreen\')">OK</button></div>' +
+    '</div>'
+  });
+}
+function cpSound() {
+  if (document.getElementById('win_cpsound')) { focusWin('cpsound'); return; }
+  createWin({ id:'cpsound', title:'Звук — Свойства', icon:'🔊', w:300, h:220, resize:false,
+    x: Math.floor(window.innerWidth/2-150), y: Math.floor((window.innerHeight-28)/2-110),
+    content: '<div style="padding:12px;font-size:12px">' +
+      '<div style="font-weight:bold;margin-bottom:10px">Громкость системы</div>' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">' +
+        '<span>🔈</span>' +
+        '<input type="range" min="0" max="100" value="70" style="flex:1" oninput="setWin95Vol(this.value);document.getElementById(\'cpvpct\').textContent=this.value+\'%\'">' +
+        '<span>🔊</span><span id="cpvpct" style="width:32px;text-align:right">70%</span>' +
+      '</div>' +
+      '<div style="font-weight:bold;margin-bottom:6px">Схема звуков</div>' +
+      '<select style="width:100%;font-size:11px"><option>ПУКДОС 95 (по умолчанию)</option><option>Тишина</option><option>Газовый оркестр</option></select>' +
+      '<div style="position:absolute;bottom:8px;right:8px"><button onclick="closeWin(\'cpsound\')">OK</button></div>' +
+    '</div>'
+  });
+}
+function cpMouse()    { win95toast('🖱️ Настройки мыши\n\nСкорость: ████████░░\nДвойной клик: быстро\nЛевша: нет'); }
+function cpKeyboard() { win95toast('⌨️ Настройки клавиатуры\n\nЗадержка: ████░░░░░░\nСкорость повтора: ██████░░░░'); }
+function cpNetwork()  { win95toast('🌐 Сеть\n\nАдаптер: PukNet 3000\nIP: 192.168.0.1\nМАС: PUK:00:00:00:FF\nСтатус: Подключено к ГазНету'); }
+function cpPrinters() { win95toast('🖨️ Принтеры\n\nПУКПРИНТ-3000 (по умолчанию)\nСтатус: Готов\nОчередь: 0 документов'); }
+function cpStorage()  { win95toast('💾 Хранилище\n\nДиск C:\\ — ПУК-диск 95\n  Объём: 640 МБ\n  Свободно: 420 МБ\n\nДиск D:\\ — СолидГаз SSD\n  2048 МБ / 1337 МБ свободно'); }
+function cpBios()     { win95toast('⚠️ Для входа в BIOS перезагрузите ПУКДОС 95\nи нажмите DEL при загрузке'); }
+function cpGas() {
+  var b = _biosSet || {};
+  win95toast('💨 Газ и Пуки\n\nPuk Mode: '+(b.pukMode||'MAXIMUM PUK')+'\nGas Compression: '+(b.gasCompression||'AUTO')+'\nFart Coprocessor: '+(b.fartCoprocessor||'ENABLED')+'\nGas Lock: '+(b.gasLock||'OFF')+'\n\nУровень газа: ████████░░ 80%');
+}
+function cpPasswords() { win95toast('🔑 Пароли\n\nПароль рабочего стола: ••••••••\nПароль хранителя экрана: (не задан)\n\nСовет: используйте сложный пук!'); }
+
+function cpDateTime() {
+  if (document.getElementById('win_cpdatetime')) { focusWin('cpdatetime'); return; }
+  var now = new Date();
+  createWin({ id:'cpdatetime', title:'Дата и время', icon:'🕐', w:280, h:200, resize:false,
+    x: Math.floor(window.innerWidth/2-140), y: Math.floor((window.innerHeight-28)/2-100),
+    content: '<div style="padding:12px;font-size:12px;text-align:center">' +
+      '<div style="font-size:32px;margin-bottom:8px" id="cpdt-clock"></div>' +
+      '<div style="margin-bottom:8px">'+now.toLocaleDateString('ru-RU',{weekday:'long',year:'numeric',month:'long',day:'numeric'})+'</div>' +
+      '<div style="font-size:10px;color:#666">Часовой пояс: Europe/Pukzburg (UTC+💨)</div>' +
+      '<div style="position:absolute;bottom:8px;right:8px"><button onclick="closeWin(\'cpdatetime\')">OK</button></div>' +
+    '</div>',
+    afterOpen: function() {
+      (function tickDT() {
+        var el = document.getElementById('cpdt-clock');
+        if (!el || !document.getElementById('win_cpdatetime')) return;
+        el.textContent = new Date().toLocaleTimeString('ru-RU');
+        setTimeout(tickDT, 1000);
+      })();
+    }
+  });
+}
