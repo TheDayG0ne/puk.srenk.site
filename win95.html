@@ -66,10 +66,19 @@
   <div class="desktop-icon" data-app="pukmail" data-label="Пук-Почта">
     <span class="icon-img">📧</span><span class="icon-label">Пук-Почта</span>
   </div>
+  <div class="desktop-icon" data-app="pukword" data-label="ПукВорд">
+    <span class="icon-img">📄</span><span class="icon-label">ПукВорд</span>
+  </div>
+  <div class="desktop-icon" data-app="pukexcel" data-label="ПукЭксель">
+    <span class="icon-img">📊</span><span class="icon-label">Пук&shy;Эксель</span>
+  </div>
+  <div class="desktop-icon" data-app="pukprez" data-label="ПукПрез">
+    <span class="icon-img">📑</span><span class="icon-label">ПукПрез</span>
+  </div>
 </div>
 <!-- TASKBAR -->
 <div id="taskbar" style="display:none" oncontextmenu="tbCtxMenu(event)">
-  <button id="start-btn" onclick="toggleSM()" oncontextmenu="event.preventDefault();showCtxPopup(event.clientX,event.clientY,[{title:'Пуск'},{label:'⚙️ Настройки панели задач',fn:function(){openApp('tbsettings');}}','-',{label:'📊 Диспетчер пуков',fn:function(){openApp('taskman');}}])">💨 Пук</button>
+  <button id="start-btn" onclick="toggleSM()" oncontextmenu="event.preventDefault();showCtxPopup(event.clientX,event.clientY,[{title:'Пуск'},{label:'⚙️ Настройки панели задач',fn:function(){openApp('tbsettings');}},'-',{label:'📊 Диспетчер пуков',fn:function(){openApp('taskman');}}])">💨 Пук</button>
   <div class="tb-sep"></div>
   <div id="taskbar-wins"></div>
   <div class="tb-sep"></div>
@@ -84,73 +93,103 @@
 <div id="start-menu">
   <div id="sm-side">ПУКДОС 95</div>
   <div id="sm-items">
-    <div class="sm-item" onclick="openApp('notepad');closeSM()">
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'notepad','Блокнот')" onclick="openApp('notepad');closeSM()">
       <span class="sm-item-icon">📝</span>
       <span class="sm-item-lbl">Блокнот<span class="sm-item-sub">Пукпром Текст</span></span>
     </div>
-    <div class="sm-item" onclick="openApp('calc');closeSM()">
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'calc','Калькулятор')" onclick="openApp('calc');closeSM()">
       <span class="sm-item-icon">🧮</span>
       <span class="sm-item-lbl">Калькулятор</span>
     </div>
-    <div class="sm-item" onclick="openApp('media');closeSM()">
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'media','Медиаплеер')" onclick="openApp('media');closeSM()">
       <span class="sm-item-icon">🎵</span>
       <span class="sm-item-lbl">Медиаплеер<span class="sm-item-sub">ПУКПРОМ Аудио</span></span>
     </div>
-    <div class="sm-item" onclick="openApp('taskman');closeSM()">
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'taskman','Диспетчер пуков')" onclick="openApp('taskman');closeSM()">
       <span class="sm-item-icon">📊</span>
       <span class="sm-item-lbl">Диспетчер пуков<span class="sm-item-sub">Процессы и пуки</span></span>
     </div>
-    <div class="sm-item" onclick="openApp('paint');closeSM()">
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'paint','Пейнт')" onclick="openApp('paint');closeSM()">
       <span class="sm-item-icon">🎨</span>
       <span class="sm-item-lbl">Пейнт</span>
     </div>
-    <div class="sm-item" onclick="openApp('ie');closeSM()">
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'ie','ПукПлорер')" onclick="openApp('ie');closeSM()">
       <span class="sm-item-icon">🌐</span>
       <span class="sm-item-lbl">ПукПлорер<span class="sm-item-sub">Интернет</span></span>
     </div>
-    <div class="sm-item" onclick="openApp('doom');closeSM()">
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'doom','ПУКДУМ')" onclick="openApp('doom');closeSM()">
       <span class="sm-item-icon">🔫</span>
       <span class="sm-item-lbl">ПУКДУМ<span class="sm-item-sub">id Software</span></span>
     </div>
-    <div class="sm-item" onclick="openApp('minesweeper');closeSM()">
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'minesweeper','Сапёр')" onclick="openApp('minesweeper');closeSM()">
       <span class="sm-item-icon">💣</span>
       <span class="sm-item-lbl">Сапёр</span>
     </div>
-    <div class="sm-item" onclick="openApp('solitaire');closeSM()">
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'solitaire','Пасьянс')" onclick="openApp('solitaire');closeSM()">
       <span class="sm-item-icon">🃏</span>
       <span class="sm-item-lbl">Пасьянс</span>
     </div>
-    <div class="sm-item" onclick="openApp('chat');closeSM()">
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'chat','Пук-Чат 2000')" onclick="openApp('chat');closeSM()">
       <span class="sm-item-icon">💬</span>
       <span class="sm-item-lbl">Пук-Чат 2000<span class="sm-item-sub">Мессенджер</span></span>
     </div>
-    <div class="sm-item" onclick="openApp('pukmail');closeSM()">
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'pukmail','Пук-Почта')" onclick="openApp('pukmail');closeSM()">
       <span class="sm-item-icon">📧</span>
       <span class="sm-item-lbl">Пук-Почта<span class="sm-item-sub">Почтовый клиент</span></span>
     </div>
-    <div class="sm-item" onclick="openApp('sysinfo');closeSM()">
+    <div class="sm-sep"></div>
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'pukword','ПукВорд')" onclick="openApp('pukword');closeSM()">
+      <span class="sm-item-icon">📄</span>
+      <span class="sm-item-lbl">ПукВорд<span class="sm-item-sub">ПукОфис 95</span></span>
+    </div>
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'pukexcel','ПукЭксель')" onclick="openApp('pukexcel');closeSM()">
+      <span class="sm-item-icon">📊</span>
+      <span class="sm-item-lbl">ПукЭксель<span class="sm-item-sub">ПукОфис 95</span></span>
+    </div>
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'pukprez','ПукПрез')" onclick="openApp('pukprez');closeSM()">
+      <span class="sm-item-icon">📑</span>
+      <span class="sm-item-lbl">ПукПрез<span class="sm-item-sub">ПукОфис 95</span></span>
+    </div>
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'sysinfo','Система')" onclick="openApp('sysinfo');closeSM()">
       <span class="sm-item-icon">ℹ️</span>
       <span class="sm-item-lbl">Система<span class="sm-item-sub">Сведения о ПК</span></span>
     </div>
     <div class="sm-sep"></div>
-    <div class="sm-item" onclick="openApp('mypc');closeSM()">
+    <div class="sm-item" style="background:#c0c0c0;cursor:default;opacity:0.7">
+      <span class="sm-item-icon">💼</span>
+      <span class="sm-item-lbl" style="font-weight:bold">ПукОфис 95</span>
+    </div>
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'pukword','ПукВорд')" onclick="openApp('pukword');closeSM()">
+      <span class="sm-item-icon">📄</span>
+      <span class="sm-item-lbl">ПукВорд<span class="sm-item-sub">Текстовый процессор</span></span>
+    </div>
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'pukexcel','ПукЭксель')" onclick="openApp('pukexcel');closeSM()">
+      <span class="sm-item-icon">📊</span>
+      <span class="sm-item-lbl">ПукЭксель<span class="sm-item-sub">Таблицы</span></span>
+    </div>
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'pukprez','ПукПрезент')" onclick="openApp('pukprez');closeSM()">
+      <span class="sm-item-icon">📑</span>
+      <span class="sm-item-lbl">ПукПрезент<span class="sm-item-sub">Презентации</span></span>
+    </div>
+    <div class="sm-sep"></div>
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'mypc','Мой Компьютер')" onclick="openApp('mypc');closeSM()">
       <span class="sm-item-icon">🖥️</span>
       <span class="sm-item-lbl">Мой Компьютер</span>
     </div>
-    <div class="sm-item" onclick="openApp('mydocs');closeSM()">
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'mydocs','Мои Документы')" onclick="openApp('mydocs');closeSM()">
       <span class="sm-item-icon">📂</span>
       <span class="sm-item-lbl">Мои Документы</span>
     </div>
-    <div class="sm-item" onclick="openApp('ctrl');closeSM()">
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'ctrl','Панель управления')" onclick="openApp('ctrl');closeSM()">
       <span class="sm-item-icon">⚙️</span>
       <span class="sm-item-lbl">Панель управления</span>
     </div>
-    <div class="sm-item" onclick="openApp('trash');closeSM()">
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'trash','Корзина')" onclick="openApp('trash');closeSM()">
       <span class="sm-item-icon">🗑️</span>
       <span class="sm-item-lbl">Корзина</span>
     </div>
     <div class="sm-sep"></div>
-    <div class="sm-item" onclick="openApp('tbsettings');closeSM()">
+    <div class="sm-item" oncontextmenu="smItemCtx(event,'tbsettings','Настройки панели задач')" onclick="openApp('tbsettings');closeSM()">
       <span class="sm-item-icon">📌</span>
       <span class="sm-item-lbl">Настройки панели задач</span>
     </div>
@@ -222,6 +261,7 @@
   <div style="color:#c0c0c0;font-size:10px;margin-top:16px;text-align:center;">ПУКДОС 95 &copy; 1993-<span id="login-year">2025</span> PukProm Inc.</div>
 </div>
 
+<script src="js/win95-theme.js"></script>
 <script src="js/win95-bios.js"></script>
 <script src="js/win95-boot.js"></script>
 <script src="js/win95-setup.js"></script>

@@ -20,6 +20,12 @@ function openApp(name){
     case 'chat':       appChat(); break;
     case 'pukmail':    appPukMail(); break;
     case 'texteditor': appNotepad(); break;
+    case 'pukpro':     appPukPro(); break;
+    case 'gazsim':     appGazSim(); break;
+    case 'ency':       appEncy(); break;
+    case 'pukword':    appPukWord(); break;
+    case 'pukexcel':   appPukExcel(); break;
+    case 'pukprez':    appPukPrez(); break;
   }
 }
 
@@ -67,41 +73,7 @@ function appWelcome(){
 // ==================== MY COMPUTER ====================
 // ==================== MY COMPUTER ====================
 function appMyPC(){
-  createWin({id:'mypc',title:'Мой компьютер',icon:'🖥️',w:500,h:320,status:'Объектов: 3',
-    menu:
-      '<div class="win-mi" onclick="toggleMI(this)">Файл<div class="win-dd">'+
-        '<div class="win-dd-item dis">Создать ярлык</div><div class="win-dd-sep"></div>'+
-        '<div class="win-dd-item" onclick="closeWin(\'mypc\')">Закрыть</div></div></div>'+
-      '<div class="win-mi" onclick="toggleMI(this)">Правка<div class="win-dd">'+
-        '<div class="win-dd-item dis">Вырезать</div><div class="win-dd-item dis">Копировать</div>'+
-        '<div class="win-dd-item dis">Вставить</div><div class="win-dd-sep"></div>'+
-        '<div class="win-dd-item dis">Выделить всё</div></div></div>'+
-      '<div class="win-mi" onclick="toggleMI(this)">Вид<div class="win-dd">'+
-        '<div class="win-dd-item" onclick="win95toast(\'Крупные значки — уже так\')">Крупные значки</div>'+
-        '<div class="win-dd-item" onclick="win95toast(\'Таблица — недоступно\')">Таблица</div>'+
-        '<div class="win-dd-item" onclick="win95toast(\'Обновлено\')">Обновить</div></div></div>'+
-      '<div class="win-mi" onclick="toggleMI(this)">Справка<div class="win-dd">'+
-        '<div class="win-dd-item" onclick="win95toast(\'ПУКДОС 95 v4.0.950. ООО ПУКПРОМ.\')">О системе...</div></div></div>',
-    content:
-      '<div class="expl-wrap">'+
-        '<div class="expl-tree" id="mypc-tree">'+
-          '<div class="expl-ti sel" onclick="mcSel(this,\'main\')">🖥️ Мой компьютер</div>'+
-          '<div style="padding-left:12px">'+
-            '<div class="expl-ti" onclick="mcSel(this,\'c\')">💾 Диск C:</div>'+
-            '<div class="expl-ti" onclick="mcSel(this,\'d\')">💿 Диск D:</div>'+
-            '<div class="expl-ti" onclick="mcSel(this,\'a\')">📀 Диск A:</div>'+
-          '</div>'+
-        '</div>'+
-        '<div class="expl-content" id="mypc-con">'+
-          '<div class="expl-item" ondblclick="mcSel(document.querySelector(\'#mypc-tree .expl-ti:nth-child(2)\'),\'c\')">'+
-            '<div class="ei-icon">💾</div><div class="ei-lbl">Диск C:<br>(ПУКДОС)</div></div>'+
-          '<div class="expl-item" ondblclick="mcSel(document.querySelector(\'#mypc-tree .expl-ti:nth-child(3)\'),\'d\')">'+
-            '<div class="ei-icon">💿</div><div class="ei-lbl">Диск D:<br>(ГАЗОВЫЙ)</div></div>'+
-          '<div class="expl-item" ondblclick="win95toast(\'Диск A: не готов. Вставьте дискету.\')">'+
-            '<div class="ei-icon">📀</div><div class="ei-lbl">Диск A:<br>(3½ дюйма)</div></div>'+
-        '</div>'+
-      '</div>'
-  });
+  appExplorer('C:/');
 }
 function mcSel(el,type){
   if(!el) return;
@@ -142,6 +114,308 @@ function mcSel(el,type){
       '<div class="expl-item"><div class="ei-icon">📀</div><div class="ei-lbl">Диск A:</div></div>';
     if(sb) sb.textContent='Объектов: 3';
   }
+}
+
+// ==================== EXPLORER ====================
+function appExplorer(startPath) {
+  var eid = 'explorer';
+  if (_wins[eid]) {
+    focusWin(eid);
+    if (_wins[eid].min) restoreWin(eid);
+    if (startPath) _exNav(startPath);
+    return;
+  }
+  var _exPath = startPath || 'C:/';
+  var _exHistory = [_exPath];
+  var _exHistIdx = 0;
+
+  function _exCrumb() {
+    var parts = _exPath.replace(/\/+$/,'').split('/').filter(Boolean);
+    var crumbs = [];
+    var built = '';
+    parts.forEach(function(p) {
+      built += (built ? '/' : '') + p;
+      var bp = built + '/';
+      crumbs.push('<span style="cursor:pointer;color:#000080;text-decoration:underline" onclick="_exNav(\'' + bp.replace(/'/g,'\\\'') + '\')">' + p + '</span>');
+    });
+    return crumbs.join(' <span style="color:#808080">›</span> ');
+  }
+
+  var _exSel = null; // currently selected item name
+
+  function _exGetIcon(name, type) {
+    if (type === 'dir') return '📁';
+    var ext = name.split('.').pop().toLowerCase();
+    var imgExts = ['png','jpg','jpeg','gif','bmp','webp','ico','svg'];
+    var docExts = ['doc','docx','rtf'];
+    var xlsExts = ['xls','xlsx','csv'];
+    var pptExts = ['ppt','pptx'];
+    if (imgExts.indexOf(ext) !== -1) return '🖼️';
+    if (docExts.indexOf(ext) !== -1) return '📄';
+    if (xlsExts.indexOf(ext) !== -1) return '📊';
+    if (pptExts.indexOf(ext) !== -1) return '📑';
+    if (ext === 'txt') return '📝';
+    if (ext === 'exe') return '⚙️';
+    return '📄';
+  }
+
+  function _exRender() {
+    var bar = document.getElementById('ex-path-bar');
+    if (bar) bar.innerHTML = '📁 ' + _exCrumb();
+    var items = _vfs.listDir(_exPath) || [];
+    var sb = document.getElementById('sb_' + eid);
+    if (sb) sb.textContent = _exPath + ' — ' + items.length + ' объектов';
+    var html = items.length === 0
+      ? '<div style="color:#808080;padding:20px;text-align:center">Папка пуста</div>'
+      : '<div style="padding:4px;display:flex;flex-wrap:wrap;gap:2px;align-content:flex-start">' +
+          items.map(function(f) {
+            var icon = _exGetIcon(f.name, f.type);
+            var safeName = f.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+            var isSel = _exSel === f.name;
+            return '<div class="expl-item' + (isSel ? ' sel' : '') + '" ' +
+              'onclick="event.stopPropagation();_exSelect(\'' + safeName + '\')" ' +
+              'ondblclick="_exOpen(\'' + safeName + '\')" ' +
+              'oncontextmenu="event.preventDefault();event.stopPropagation();_exSelect(\'' + safeName + '\');_exCtx(event,\'' + safeName + '\',\'' + f.type + '\')">' +
+              '<div class="ei-icon">' + icon + '</div>' +
+              '<div class="ei-lbl">' + f.name + '</div>' +
+            '</div>';
+          }).join('') +
+        '</div>';
+    var con = document.getElementById('ex-con');
+    if (con) con.innerHTML = html;
+  }
+
+  window._exSelect = function(name) {
+    _exSel = name;
+    // Update visual selection without full re-render
+    var con = document.getElementById('ex-con');
+    if (!con) return;
+    con.querySelectorAll('.expl-item').forEach(function(el) {
+      var lbl = el.querySelector('.ei-lbl');
+      if (lbl && lbl.textContent === name) el.classList.add('sel');
+      else el.classList.remove('sel');
+    });
+    var sb = document.getElementById('sb_' + eid);
+    if (sb) { var items = _vfs.listDir(_exPath)||[]; sb.textContent = 'Выделено: ' + name + ' — ' + items.length + ' объектов'; }
+  };
+
+  window._exNav = function(path) {
+    _exPath = path; _exSel = null;
+    window._exPath = _exPath;
+    if (_exHistIdx < _exHistory.length - 1) _exHistory = _exHistory.slice(0, _exHistIdx + 1);
+    _exHistory.push(path);
+    _exHistIdx = _exHistory.length - 1;
+    _exRender();
+  };
+  window._exBack = function() {
+    if (_exHistIdx > 0) { _exHistIdx--; _exPath = _exHistory[_exHistIdx]; _exSel = null; window._exPath = _exPath; _exRender(); }
+  };
+  window._exForward = function() {
+    if (_exHistIdx < _exHistory.length - 1) { _exHistIdx++; _exPath = _exHistory[_exHistIdx]; _exSel = null; window._exPath = _exPath; _exRender(); }
+  };
+  window._exCopy = function() {
+    if (!_exSel) return;
+    var fp = _exPath + _exSel;
+    var c = _vfs.readFile(fp);
+    if (c !== null) { window._exClipboard = { name: _exSel, path: fp, content: c, op: 'copy' }; win95balloon('Скопировано: ' + _exSel, '📋'); }
+  };
+  window._exCut = function() {
+    if (!_exSel) return;
+    var fp = _exPath + _exSel;
+    var c = _vfs.readFile(fp);
+    if (c !== null) { window._exClipboard = { name: _exSel, path: fp, content: c, op: 'cut' }; win95balloon('Вырезано: ' + _exSel, '✂️'); }
+  };
+  window._exPaste = function() {
+    if (!window._exClipboard) return;
+    _vfs.writeFile(_exPath + window._exClipboard.name, window._exClipboard.content);
+    if (window._exClipboard.op === 'cut') _vfs.deleteFile(window._exClipboard.path);
+    window._exClipboard = null;
+    _exRender();
+  };
+  window._exOpen = function(name) {
+    var fullPath = _exPath + name;
+    var items = _vfs.listDir(_exPath) || [];
+    var entry = items.filter(function(f){ return f.name === name; })[0];
+    if (entry && entry.type === 'dir') {
+      _exNav(_exPath + name + '/');
+    } else {
+      var ext = name.split('.').pop().toLowerCase();
+      var imgExts = ['png','jpg','jpeg','gif','bmp','webp','ico','svg'];
+      if (imgExts.indexOf(ext) !== -1) {
+        // Open image in Paint via VFS
+        var data = _vfs.readFile(fullPath);
+        if (data) {
+          if (!_wins['paint']) appPaint();
+          setTimeout(function() {
+            var img = new Image();
+            img.onload = function() {
+              var cv = document.getElementById('pcv');
+              if (!cv || !_pCtx) return;
+              _pCtx.fillStyle = '#fff';
+              _pCtx.fillRect(0, 0, cv.width, cv.height);
+              var scale = Math.min(cv.width / img.width, cv.height / img.height);
+              _pCtx.drawImage(img, (cv.width - img.width*scale)/2, (cv.height - img.height*scale)/2, img.width*scale, img.height*scale);
+              var wb = document.querySelector('#win_paint .win-titlebar-text');
+              if (wb) wb.textContent = name + ' — Пейнт';
+              _paintDirty = false;
+            };
+            img.src = data;
+          }, _wins['paint'] ? 0 : 400);
+        } else win95msgbox('Невозможно открыть изображение: ' + name, 'Ошибка', '⚠️');
+      } else {
+        // Open in Notepad
+        var content = _vfs.readFile(fullPath);
+        if (content !== null) appNotepad(name, content, fullPath);
+        else win95msgbox('Невозможно открыть файл: ' + name, 'Ошибка', '⚠️');
+      }
+    }
+  };
+
+  function _exRename(name, type) {
+    var fullPath = _exPath + name;
+    win95input('Переименовать', 'Новое имя:', name, function(newName) {
+      if (!newName || newName === name) return;
+      var newPath = _exPath + newName;
+      if (type === 'file') {
+        var c = _vfs.readFile(fullPath);
+        _vfs.writeFile(newPath, c || '');
+        _vfs.deleteFile(fullPath);
+      } else {
+        // Rename folder: copy all contents
+        var children = _vfs.listDir(fullPath + '/') || [];
+        _vfs.createDir(newPath);
+        children.forEach(function(ch) {
+          var src = fullPath + '/' + ch.name;
+          var dst = newPath + '/' + ch.name;
+          if (ch.type === 'file') { _vfs.writeFile(dst, _vfs.readFile(src) || ''); _vfs.deleteFile(src); }
+        });
+        _vfs.deleteDir(fullPath);
+      }
+      _exSel = newName;
+      _exRender();
+    });
+  }
+
+  function _exDelete(name, type) {
+    var fullPath = _exPath + name;
+    win95confirm('Удалить ' + (type === 'dir' ? 'папку' : 'файл') + ' "' + name + '"?', function() {
+      if (type === 'dir') {
+        var children = _vfs.listDir(fullPath + '/') || [];
+        children.forEach(function(ch) { if (ch.type === 'file') _vfs.deleteFile(fullPath + '/' + ch.name); });
+        _vfs.deleteDir(fullPath);
+      } else {
+        _vfs.moveToTrash(fullPath);
+      }
+      if (_exSel === name) _exSel = null;
+      win95balloon('Удалено: ' + name, '🗑️');
+      if (window._updateTrashIcon) _updateTrashIcon();
+      _exRender();
+    }, null);
+  }
+
+  window._exCtx = function(e, name, type) {
+    var fullPath = _exPath + name;
+    var items = [];
+    items.push({ title: name });
+    items.push({ label: type === 'dir' ? '📂 Открыть' : '📄 Открыть', fn: function() { _exOpen(name); } });
+    if (type === 'file') {
+      var ext = name.split('.').pop().toLowerCase();
+      var docExts = ['doc','docx','rtf'];
+      var xlsExts = ['xls','xlsx','csv'];
+      var pptExts = ['ppt','pptx'];
+      var imgExts = ['png','jpg','jpeg','gif','bmp','webp'];
+      if (docExts.indexOf(ext) !== -1) items.push({ label: '📄 Открыть в ПукВорд', fn: function() { var c=_vfs.readFile(fullPath); if(c!==null){appPukWord();setTimeout(function(){var ed=document.getElementById('pw-editor');if(ed)ed.innerHTML=c;},300);} } });
+      else if (xlsExts.indexOf(ext) !== -1) items.push({ label: '📊 Открыть в ПукЭксель', fn: function() { appPukExcel(); } });
+      else if (pptExts.indexOf(ext) !== -1) items.push({ label: '📑 Открыть в ПукПрез', fn: function() { appPukPrez(); } });
+      else if (imgExts.indexOf(ext) !== -1) items.push({ label: '🎨 Открыть в Пейнт', fn: function() { _exOpen(name); } });
+      else items.push({ label: '📝 Открыть в Блокноте', fn: function() { var c=_vfs.readFile(fullPath); if(c!==null) appNotepad(name,c,fullPath); } });
+    }
+    items.push('-');
+    items.push({ label: '✏️ Переименовать', fn: function() { _exRename(name, type); } });
+    items.push({ label: '🗑️ Удалить', fn: function() { _exDelete(name, type); } });
+    items.push('-');
+    items.push({ label: 'ℹ️ Свойства', fn: function() {
+      var size = type === 'file' ? (_vfs.readFile(fullPath)||'').length + ' байт' : ((_vfs.listDir(fullPath+'/')||[]).length) + ' объектов';
+      win95msgbox('<b>' + name + '</b><br>Тип: ' + (type === 'dir' ? 'Папка' : 'Файл') + '<br>Путь: ' + fullPath + '<br>Размер: ' + size, 'Свойства', 'ℹ️');
+    }});
+    showCtxPopup(e.clientX, e.clientY, items);
+  };
+  window._exNewFile = function() {
+    win95input('Новый файл', 'Имя файла:', 'новый файл.txt', function(name) {
+      if (!name) return;
+      _vfs.writeFile(_exPath + name, '');
+      _exSel = name;
+      _exRender();
+    });
+  };
+  window._exNewFolder = function() {
+    win95input('Новая папка', 'Имя папки:', 'Новая папка', function(name) {
+      if (!name) return;
+      _vfs.createDir(_exPath + name);
+      _exSel = name;
+      _exRender();
+    });
+  };
+  window._exRenderGlobal = _exRender;
+  window._myDocsRefresh = function() {
+    if (window._exRenderGlobal) _exRenderGlobal();
+  };
+
+  createWin({ id: eid, title: 'Проводник', icon: '📁', w: 560, h: 380,
+    status: _exPath + ' — 0 объектов',
+    menu:
+      '<div class="win-mi" onclick="toggleMI(this)">Файл<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="_exNewFile()">📄 Новый файл</div>' +
+        '<div class="win-dd-item" onclick="_exNewFolder()">📁 Новая папка</div>' +
+        '<div class="win-dd-sep"></div>' +
+        '<div class="win-dd-item" onclick="closeWin(\'explorer\')">Закрыть</div>' +
+      '</div></div>' +
+      '<div class="win-mi" onclick="toggleMI(this)">Правка<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="_exCopy()">📋 Копировать</div>' +
+        '<div class="win-dd-item" onclick="_exCut()">✂️ Вырезать</div>' +
+        '<div class="win-dd-item" onclick="_exPaste()">📌 Вставить</div>' +
+      '</div></div>'+
+      '<div class="win-mi" onclick="toggleMI(this)">Вид<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="_exRender()">🔄 Обновить</div>' +
+      '</div></div>',
+    content:
+      '<div style="display:flex;flex-direction:column;height:100%">' +
+        '<div style="display:flex;align-items:center;gap:4px;padding:3px 4px;border-bottom:2px solid #808080;background:#c0c0c0">' +
+          '<button class="w-btn" style="min-width:28px;font-size:10px" onclick="_exBack()">◄</button>' +
+          '<button class="w-btn" style="min-width:28px;font-size:10px" onclick="_exForward()">►</button>' +
+          '<div id="ex-path-bar" style="flex:1;border:2px inset #808080;background:#fff;padding:2px 6px;font-size:11px;font-family:inherit;min-height:18px"></div>' +
+        '</div>' +
+        '<div id="ex-con" style="flex:1;overflow:auto;background:#fff;padding:2px"></div>' +
+      '</div>',
+    afterOpen: function() {
+      window._exPath = _exPath; // expose for menu actions
+      _exRender();
+      var con = document.getElementById('ex-con');
+      if (con) {
+        // Click on empty area — deselect
+        con.addEventListener('click', function(e) {
+          if (e.target === con || e.target.closest && !e.target.closest('.expl-item')) {
+            _exSel = null;
+            con.querySelectorAll('.expl-item.sel').forEach(function(el){ el.classList.remove('sel'); });
+          }
+        });
+        con.addEventListener('contextmenu', function(e) {
+          // Only show folder ctx if not on an item (items handle their own)
+          var item = e.target.closest && e.target.closest('.expl-item');
+          if (!item) {
+            e.preventDefault();
+            showCtxPopup(e.clientX, e.clientY, [
+              { title: 'Проводник' },
+              { label: '📄 Новый файл', fn: function() { _exNewFile(); } },
+              { label: '📁 Новая папка', fn: function() { _exNewFolder(); } },
+              '-',
+              { label: '🔄 Обновить', fn: function() { _exRender(); } },
+            ]);
+          }
+        });
+      }
+    }
+  });
 }
 
 // ==================== NOTEPAD (legacy, используется новый appNotepad с VFS поддержкой) ====================
@@ -288,15 +562,18 @@ function cf(b){
 }
 
 // ==================== PAINT ====================
-var _pCtx=null,_pColor='#000000',_pTool='pencil',_pDraw=false,_pX=0,_pY=0;
+var _pCtx=null,_pColor='#000000',_pTool='pencil',_pDraw=false,_pX=0,_pY=0,_paintDirty=false;
 function appPaint(){
   createWin({id:'paint',title:'Безымянный — Пейнт',icon:'🎨',w:540,h:440,status:'Инструмент: Карандаш',
     menu:
       '<div class="win-mi" onclick="toggleMI(this)">Файл<div class="win-dd">'+
-        '<div class="win-dd-item" onclick="pOpen()">Открыть...</div>'+
-        '<div class="win-dd-item" onclick="pSave()">Сохранить как PNG</div>'+
+        '<div class="win-dd-item" onclick="pOpen()">📂 Открыть с ПК...</div>'+
+        '<div class="win-dd-item" onclick="pOpenVFS()">📁 Открыть из VFS...</div>'+
         '<div class="win-dd-sep"></div>'+
-        '<div class="win-dd-item" onclick="closeWin(\'paint\')">Выход</div></div></div>'+
+        '<div class="win-dd-item" onclick="pSave()">💾 Сохранить как PNG</div>'+
+        '<div class="win-dd-item" onclick="pSaveVFS()">💾 Сохранить в VFS...</div>'+
+        '<div class="win-dd-sep"></div>'+
+        '<div class="win-dd-item" onclick="_paintClose()">Выход</div></div></div>'+
       '<div class="win-mi" onclick="toggleMI(this)">Правка<div class="win-dd">'+
         '<div class="win-dd-item" onclick="pClear()">Очистить</div></div></div>'+
       '<div class="win-mi" onclick="toggleMI(this)">Рисунок<div class="win-dd">'+
@@ -327,6 +604,20 @@ function appPaint(){
       '</div>',
     afterOpen: function(){ initPaintCv(); }
   });
+  setTimeout(function() {
+    var closeBtn = document.querySelector('#win_paint .win-titlebar-btn[onclick*="closeWin"]');
+    if (closeBtn) closeBtn.setAttribute('onclick', '_paintClose()');
+  }, 50);
+  window._paintClose = function() {
+    if (_paintDirty) {
+      win95confirm('В рисунке есть несохранённые изменения. Сохранить перед закрытием?',
+        function() { pSave(); closeWin('paint'); },
+        function() { closeWin('paint'); }
+      );
+    } else {
+      closeWin('paint');
+    }
+  };
 }
 function initPaintCv(){
   var cv=document.getElementById('pcv'); if(!cv) return;
@@ -345,6 +636,7 @@ function pDown(e){
   _pDraw=true;
   var r=e.target.getBoundingClientRect(); _pX=e.clientX-r.left; _pY=e.clientY-r.top;
   pDot(_pX,_pY);
+  _paintDirty=true;
 }
 function pMove(e){
   if(!_pDraw) return;
@@ -365,10 +657,12 @@ function pDot(x,y){
 function pClear(){
   if(!_pCtx) return;
   _pCtx.fillStyle='#fff'; _pCtx.fillRect(0,0,_pCtx.canvas.width,_pCtx.canvas.height);
+  _paintDirty=false;
 }
 function pSave(){
   var cv=document.getElementById('pcv'); if(!cv) return;
   var a=document.createElement('a'); a.href=cv.toDataURL('image/png'); a.download='пук-рисунок.png'; a.click();
+  _paintDirty=false;
   win95toast('Сохранено: пук-рисунок.png');
 }
 
@@ -400,7 +694,41 @@ function pOpen(){
   inp.click();
 }
 
-// ==================== IE ====================
+function pSaveVFS(){
+  var cv=document.getElementById('pcv'); if(!cv) return;
+  var dataUrl=cv.toDataURL('image/png');
+  win95input('Сохранить в VFS','Имя файла:','рисунок.png',function(name){
+    if(!name) return;
+    _vfs.writeFile('C:/Мои документы/'+name,dataUrl);
+    _paintDirty=false;
+    var wb=document.querySelector('#win_paint .win-titlebar-text');
+    if(wb) wb.textContent=name+' — Пейнт';
+    win95balloon('Сохранено в VFS: '+name,'💾');
+    if(window._myDocsRefresh) _myDocsRefresh();
+  });
+}
+
+function pOpenVFS(){
+  win95filePicker('C:/Мои документы',function(path,name){
+    var data=_vfs.readFile(path);
+    if(!data){win95msgbox('Файл не найден или пуст.','Ошибка','⚠️');return;}
+    var img=new Image();
+    img.onload=function(){
+      var cv=document.getElementById('pcv'); if(!cv||!_pCtx) return;
+      _pCtx.fillStyle='#fff';_pCtx.fillRect(0,0,cv.width,cv.height);
+      var scale=Math.min(cv.width/img.width,cv.height/img.height);
+      var dw=img.width*scale,dh=img.height*scale;
+      var dx=(cv.width-dw)/2,dy=(cv.height-dh)/2;
+      _pCtx.drawImage(img,dx,dy,dw,dh);
+      _paintDirty=false;
+      var wb=document.querySelector('#win_paint .win-titlebar-text');
+      if(wb) wb.textContent=name+' — Пейнт';
+      win95toast('Открыт из VFS: '+name);
+    };
+    img.onerror=function(){win95msgbox('Не удалось открыть изображение из VFS.','Ошибка','⚠️');};
+    img.src=data;
+  });
+}
 function appIE(){
   createWin({id:'ie',title:'ПукПлорер 1.0 — [puk.srenk.site]',icon:'🌐',w:580,h:380,status:'Готово',
     menu:
@@ -794,26 +1122,115 @@ function siSecretClick() {
 
 // ==================== TRASH ====================
 function appTrash(){
-  createWin({id:'trash',title:'Корзина',icon:'🗑️',w:320,h:230,
-    menu:'<div class="win-mi" onclick="toggleMI(this)">Файл<div class="win-dd">'+
-      '<div class="win-dd-item" onclick="win95toast(\'Корзина очищена.\')">Очистить корзину</div>'+
-      '<div class="win-dd-sep"></div>'+
-      '<div class="win-dd-item" onclick="closeWin(\'trash\')">Закрыть</div></div></div>',
-    status:'1 объект | 4 ГБ',
+  var id = 'trash';
+  if (_wins[id]) { focusWin(id); if (_wins[id].min) restoreWin(id); return; }
+
+  function _trashItems() { return _vfs.listDir('C:/Корзина/') || []; }
+
+  function _trashRender() {
+    var items = _trashItems();
+    var sb = document.getElementById('sb_' + id);
+    if (sb) sb.textContent = 'Объектов в корзине: ' + items.length;
+    var con = document.getElementById('trash-con');
+    if (!con) return;
+    var titleEl = document.getElementById('trash-title');
+    if (titleEl) titleEl.textContent = items.length === 0 ? 'Корзина пуста' : 'Объектов: ' + items.length;
+    if (items.length === 0) {
+      con.innerHTML = '<div style="color:#808080;padding:20px;text-align:center;font-size:11px">Корзина пуста</div>';
+      return;
+    }
+    con.innerHTML = '<div style="padding:4px;display:flex;flex-wrap:wrap;gap:2px;align-content:flex-start">' +
+      items.map(function(f) {
+        var ext = f.name.split('.').pop().toLowerCase();
+        var icon = ext === 'txt' ? '📝' : (ext === 'doc'||ext==='docx') ? '📄' : (ext==='png'||ext==='jpg'||ext==='bmp') ? '🖼️' : '📄';
+        var safe = f.name.replace(/'/g,"\\'");
+        return '<div class="expl-item" id="tri_'+safe+'" ' +
+          'onclick="event.stopPropagation();_trashSel(\'' + safe + '\')" ' +
+          'oncontextmenu="event.preventDefault();event.stopPropagation();_trashSel(\'' + safe + '\');_trashCtx(event,\'' + safe + '\')">' +
+          '<div class="ei-icon">' + icon + '</div>' +
+          '<div class="ei-lbl">' + f.name + '</div>' +
+        '</div>';
+      }).join('') +
+    '</div>';
+  }
+
+  window._trashSel = function(name) {
+    var con = document.getElementById('trash-con');
+    if (!con) return;
+    con.querySelectorAll('.expl-item').forEach(function(el) {
+      el.classList.toggle('sel', el.querySelector('.ei-lbl') && el.querySelector('.ei-lbl').textContent === name);
+    });
+  };
+  window._trashCtx = function(e, name) {
+    showCtxPopup(e.clientX, e.clientY, [
+      { title: name },
+      { label: '♻️ Восстановить', fn: function() {
+        if (_vfs.restoreFromTrash(name)) {
+          win95balloon('Восстановлено в «Мои документы»: ' + name, '♻️');
+          if (window._updateTrashIcon) _updateTrashIcon();
+          _trashRender();
+        } else win95msgbox('Не удалось восстановить файл.', 'Ошибка', '⚠️');
+      }},
+      '-',
+      { label: '🗑️ Удалить навсегда', fn: function() {
+        win95confirm('Удалить "' + name + '" навсегда?', function() {
+          _vfs.deleteFile('C:/Корзина/' + name);
+          win95balloon('Удалено навсегда: ' + name, '🗑️');
+          if (window._updateTrashIcon) _updateTrashIcon();
+          _trashRender();
+        }, null);
+      }},
+    ]);
+  };
+  window._trashEmpty = function() {
+    var items = _trashItems();
+    if (items.length === 0) { win95balloon('Корзина уже пуста', '🗑️'); return; }
+    win95confirm('Безвозвратно удалить все объекты из Корзины (' + items.length + ' шт.)?', function() {
+      _vfs.emptyTrash();
+      win95balloon('Корзина очищена', '🗑️');
+      if (window._updateTrashIcon) _updateTrashIcon();
+      _trashRender();
+    }, null);
+  };
+  window._trashRestoreAll = function() {
+    var items = _trashItems();
+    if (items.length === 0) { win95balloon('Корзина пуста', '🗑️'); return; }
+    items.forEach(function(f) { _vfs.restoreFromTrash(f.name); });
+    win95balloon('Восстановлено объектов: ' + items.length, '♻️');
+    if (window._updateTrashIcon) _updateTrashIcon();
+    _trashRender();
+  };
+
+  createWin({ id: id, title: 'Корзина', icon: '🗑️', w: 400, h: 280,
+    status: 'Объектов в корзине: 0',
+    menu:
+      '<div class="win-mi" onclick="toggleMI(this)">Файл<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="_trashEmpty()">🧹 Очистить корзину</div>' +
+        '<div class="win-dd-item" onclick="_trashRestoreAll()">♻️ Восстановить все</div>' +
+        '<div class="win-dd-sep"></div>' +
+        '<div class="win-dd-item" onclick="closeWin(\'trash\')">Закрыть</div>' +
+      '</div></div>' +
+      '<div class="win-mi" onclick="toggleMI(this)">Вид<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="_trashRender()">🔄 Обновить</div>' +
+      '</div></div>',
     content:
-      '<div style="padding:16px;text-align:center">'+
-        '<div style="font-size:48px">🗑️</div>'+
-        '<div style="margin-top:8px;font-size:12px">В корзине: 1 объект</div>'+
-        '<div style="margin:12px auto;background:#fff;border:1px solid #808080;padding:8px;max-width:200px;'+
-          'display:flex;align-items:center;gap:8px;cursor:default" ondblclick="win95toast(\'Нельзя восстановить. Время не возвращается.\')">'+
-          '<span style="font-size:24px">💨</span>'+
-          '<div style="text-align:left;font-size:11px"><div style="font-weight:bold">твоё_время.exe</div><div style="color:#808080">4 294 967 295 ГБ</div></div>'+
-        '</div>'+
-        '<div style="margin-top:8px;display:flex;gap:8px;justify-content:center">'+
-          '<button class="w-btn" onclick="win95toast(\'Невозможно восстановить.\')">Восстановить</button>'+
-          '<button class="w-btn" onclick="win95toast(\'Удалено. Но время всё равно не вернуть.\')">Удалить</button>'+
-        '</div>'+
-      '</div>'
+      '<div style="display:flex;flex-direction:column;height:100%">' +
+        '<div style="background:#c0c0c0;border-bottom:2px solid #808080;padding:4px 8px;display:flex;align-items:center;gap:8px">' +
+          '<span style="font-size:20px">🗑️</span>' +
+          '<span id="trash-title" style="font-size:11px;font-weight:bold">Корзина</span>' +
+          '<div style="flex:1"></div>' +
+          '<button class="w-btn" style="font-size:10px" onclick="_trashEmpty()">Очистить</button>' +
+          '<button class="w-btn" style="font-size:10px" onclick="_trashRestoreAll()">Восстановить все</button>' +
+        '</div>' +
+        '<div id="trash-con" style="flex:1;overflow:auto;background:#fff;padding:2px"></div>' +
+      '</div>',
+    afterOpen: function() {
+      _trashRender();
+      var con = document.getElementById('trash-con');
+      if (con) con.addEventListener('click', function(e) {
+        if (e.target === con) con.querySelectorAll('.expl-item.sel').forEach(function(el){ el.classList.remove('sel'); });
+      });
+    }
   });
 }
 
@@ -1975,6 +2392,460 @@ function cpDateTime() {
   });
 }
 
+// ==================== ПУКОЛАЙЗЕР PRO ====================
+function appPukPro() {
+  var id = 'pukpro';
+  if (document.getElementById('win_'+id)) { focusWin(id); return; }
+  createWin({ id:id, title:'Пуколайзер PRO 2003', icon:'💨', w:400, h:300,
+    menu:
+      '<div class="win-mi" onclick="toggleMI(this)">Файл<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="closeWin(\'pukpro\')">Выход</div>' +
+      '</div></div>' +
+      '<div class="win-mi" onclick="toggleMI(this)">Справка<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="win95msgbox(\'Пуколайзер PRO 2003\nВерсия 3.0.1337\n\nООО ПУКПРОМ Engineering\nОптимизирует пуки до 420%!\',\'О программе\',\'💨\')">О программе</div>' +
+      '</div></div>',
+    content:
+      '<div style="padding:16px;font-size:12px">' +
+        '<div style="background:#000080;color:#fff;padding:6px 12px;margin-bottom:12px;font-size:14px;font-weight:bold">💨 Пуколайзер PRO 2003</div>' +
+        '<div style="border:2px inset #808080;padding:8px;background:#c0c0c0;margin-bottom:10px">' +
+          '<div style="margin-bottom:6px"><b>Уровень пуков:</b></div>' +
+          '<input type="range" min="0" max="100" value="69" style="width:100%">' +
+          '<div style="display:flex;justify-content:space-between;font-size:10px"><span>0%</span><span>69%</span><span>100%</span></div>' +
+        '</div>' +
+        '<div style="border:2px inset #808080;padding:8px;background:#c0c0c0;margin-bottom:10px">' +
+          '<b>Режим оптимизации:</b><br>' +
+          '<label><input type="radio" name="pkmode" checked> Стандартный пук</label><br>' +
+          '<label><input type="radio" name="pkmode"> Турбо-пук</label><br>' +
+          '<label><input type="radio" name="pkmode"> Максимальный газ</label>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;justify-content:center">' +
+          '<button class="w-btn" onclick="win95balloon(\'Оптимизация пуков запущена! +420% газа\',\'💨\',\'Пуколайзер PRO\')">💨 Оптимизировать</button>' +
+          '<button class="w-btn" onclick="win95balloon(\'Сканирование завершено: 69 пуков\',\'🔍\',\'Пуколайзер PRO\')">🔍 Сканировать</button>' +
+        '</div>' +
+      '</div>'
+  });
+}
+
+// ==================== ГАЗОВЫЕ СИМУЛЯТОРЫ ====================
+function appGazSim() {
+  var id = 'gazsim';
+  if (document.getElementById('win_'+id)) { focusWin(id); return; }
+  createWin({ id:id, title:'Газовые Симуляторы Deluxe', icon:'💨', w:420, h:320,
+    menu:
+      '<div class="win-mi" onclick="toggleMI(this)">Симулятор<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="closeWin(\'gazsim\')">Выход</div>' +
+      '</div></div>' +
+      '<div class="win-mi" onclick="toggleMI(this)">Справка<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="win95msgbox(\'Газовые Симуляторы Deluxe\nВерсия 2.0\n\nООО ПУКПРОМ Labs\nПрофессиональная симуляция газов\',\'О программе\',\'💨\')">О программе</div>' +
+      '</div></div>',
+    content:
+      '<div style="padding:12px;font-size:12px">' +
+        '<div style="background:#006400;color:#fff;padding:6px 12px;margin-bottom:12px;font-size:13px;font-weight:bold">🧪 Газовые Симуляторы Deluxe</div>' +
+        '<div style="border:2px inset #808080;padding:8px;background:#c0c0c0;margin-bottom:8px">' +
+          '<b>Выберите симуляцию:</b><br>' +
+          '<select style="width:100%;margin-top:4px;border:2px inset #808080;font-family:inherit;font-size:11px">' +
+            '<option>Пуковое поле (2D)</option>' +
+            '<option>Газовый вихрь</option>' +
+            '<option>Ядерный пук</option>' +
+            '<option>Квантовый газ</option>' +
+          '</select>' +
+        '</div>' +
+        '<div style="border:2px inset #808080;height:80px;background:#000;display:flex;align-items:center;justify-content:center;color:#0f0;font-family:monospace;font-size:11px;margin-bottom:8px" id="gazsim-view">Нажмите Запуск для начала симуляции</div>' +
+        '<div style="display:flex;gap:8px;justify-content:center">' +
+          '<button class="w-btn" onclick="(function(){var v=document.getElementById(\'gazsim-view\');if(v){v.innerHTML=\'<span style=color:#0f0>💨 💨 💨 Симуляция активна... 69 частиц 💨 💨 💨</span>\';}win95balloon(\'Симуляция запущена!\',\'💨\',\'Газовые Симуляторы\');})()">▶ Запуск</button>' +
+          '<button class="w-btn" onclick="var v=document.getElementById(\'gazsim-view\');if(v)v.innerHTML=\'Симуляция остановлена\'">⏹ Стоп</button>' +
+        '</div>' +
+      '</div>'
+  });
+}
+
+// ==================== ЭНЦИКЛОПЕДИЯ ПУКОВ ====================
+function appEncy() {
+  var id = 'ency';
+  if (document.getElementById('win_'+id)) { focusWin(id); return; }
+  var entries = [
+    { term: 'Пук', def: 'Газовый выброс, производимый организмом. Основа деятельности ООО ПУКПРОМ.' },
+    { term: 'Газ', def: 'Вещество, составляющее основу пуков. Хранится в газовых резервуарах.' },
+    { term: 'ПУКПРОМ', def: 'ООО ПУКПРОМ — ведущий производитель пуковых технологий с 1993 года.' },
+    { term: 'ПУКДОС', def: 'Операционная система семейства ПУКПРОМ, основанная на технологии газового управления.' },
+    { term: 'Рикролл', def: 'Музыкальная пасхалка. При обнаружении воспроизводит Never Gonna Give You Up.' },
+    { term: 'BSOD', def: 'Blue Screen of Death — критическая ошибка, выводящая синий экран с пуковым дампом памяти.' },
+  ];
+  createWin({ id:id, title:'Энциклопедия Пуков', icon:'📚', w:440, h:340,
+    menu:
+      '<div class="win-mi" onclick="toggleMI(this)">Файл<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="closeWin(\'ency\')">Выход</div>' +
+      '</div></div>' +
+      '<div class="win-mi" onclick="toggleMI(this)">Справка<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="win95msgbox(\'Большая Энциклопедия Пуков\nИздание 3-е, расширенное\n\nООО ПУКПРОМ Publishing, 2000\n2000+ статей о пуках\',\'О программе\',\'📚\')">О программе</div>' +
+      '</div></div>',
+    content:
+      '<div style="display:flex;height:100%">' +
+        '<div style="width:140px;border-right:2px solid #808080;padding:4px;overflow-y:auto;font-size:11px">' +
+          entries.map(function(e,i){ return '<div style="padding:3px 6px;cursor:pointer;border:1px solid transparent" onmouseover="this.style.background=\'#000080\';this.style.color=\'#fff\'" onmouseout="this.style.background=\'\';this.style.color=\'\'" onclick="var d=document.getElementById(\'ency-def\');if(d){d.innerHTML=\'<b>'+e.term+'</b><hr>'+e.def+'\';}">'+e.term+'</div>'; }).join('') +
+        '</div>' +
+        '<div id="ency-def" style="flex:1;padding:12px;font-size:12px;line-height:1.6;overflow-y:auto">' +
+          '<span style="color:#808080">← Выберите статью</span>' +
+        '</div>' +
+      '</div>'
+  });
+}
+
+// ==================== ПУК ОФИС ====================
+
+// --- ПукВорд ---
+function appPukWord() {
+  var id = 'pukword';
+  if (_wins[id]) { focusWin(id); if (_wins[id].min) restoreWin(id); return; }
+  var _pwPath = null, _pwName = 'Документ1.doc', _pwDirty = false;
+
+  function _pwSave(path) {
+    var ed = document.getElementById('pw-editor');
+    if (!ed) return;
+    _vfs.writeFile(path, ed.innerHTML);
+    _pwPath = path; _pwName = path.split('/').pop(); _pwDirty = false;
+    var tb = document.querySelector('#win_pukword .win-titlebar-text');
+    if (tb) tb.textContent = _pwName + ' — ПукВорд';
+    win95balloon('Сохранено: ' + _pwName, '📄');
+    if (window._myDocsRefresh) _myDocsRefresh();
+  }
+  window._pwSave = function() {
+    if (_pwPath) _pwSave(_pwPath);
+    else win95input('Сохранить как', 'Имя файла:', _pwName, function(n) { if (n) _pwSave('C:/Мои документы/' + n); });
+  };
+  window._pwSaveAs = function() {
+    win95input('Сохранить как', 'Имя файла:', _pwName, function(n) { if (n) _pwSave('C:/Мои документы/' + n); });
+  };
+  window._pwOpen = function() {
+    win95filePicker('C:/Мои документы', function(path, name) {
+      var c = _vfs.readFile(path);
+      if (c === null) { win95msgbox('Файл не найден.', 'Ошибка', '⚠️'); return; }
+      var ed = document.getElementById('pw-editor');
+      if (ed) { ed.innerHTML = c; }
+      _pwPath = path; _pwName = name; _pwDirty = false;
+      var tb = document.querySelector('#win_pukword .win-titlebar-text');
+      if (tb) tb.textContent = name + ' — ПукВорд';
+    });
+  };
+  window._pwClose = function() {
+    if (_pwDirty) win95confirm('Сохранить изменения в "' + _pwName + '"?', function() { window._pwSave(); closeWin(id); }, function() { closeWin(id); });
+    else closeWin(id);
+  };
+  window._pwFmt = function(cmd, val) {
+    document.getElementById('pw-editor') && document.getElementById('pw-editor').focus();
+    document.execCommand(cmd, false, val || null);
+  };
+
+  createWin({ id:id, title:'ПукВорд — ' + _pwName, icon:'📄', w:620, h:480,
+    menu:
+      '<div class="win-mi" onclick="toggleMI(this)">Файл<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="_pwOpen()">📂 Открыть...</div>' +
+        '<div class="win-dd-item" onclick="_pwSave()">💾 Сохранить</div>' +
+        '<div class="win-dd-item" onclick="_pwSaveAs()">💾 Сохранить как...</div>' +
+        '<div class="win-dd-sep"></div>' +
+        '<div class="win-dd-item" onclick="_pwClose()">Выход</div>' +
+      '</div></div>' +
+      '<div class="win-mi" onclick="toggleMI(this)">Правка<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="_pwFmt(\'undo\')">↩ Отменить</div>' +
+        '<div class="win-dd-item" onclick="_pwFmt(\'redo\')">↪ Повторить</div>' +
+        '<div class="win-dd-sep"></div>' +
+        '<div class="win-dd-item" onclick="_pwFmt(\'selectAll\')">Выделить всё</div>' +
+      '</div></div>' +
+      '<div class="win-mi" onclick="toggleMI(this)">Вставить<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="_pwFmt(\'insertHorizontalRule\')">Горизонтальная линия</div>' +
+        '<div class="win-dd-item" onclick="(function(){var u=prompt(\'URL изображения:\');if(u)_pwFmt(\'insertImage\',u);})()">Изображение по URL</div>' +
+      '</div></div>' +
+      '<div class="win-mi" onclick="toggleMI(this)">Справка<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="aboutWin(\'pukword\',\'ПукВорд\',\'1.0\',\'📄\',\'Текстовый процессор ПУКДОС 95.<br>ПукОфис 95 Standard Edition.\')">О программе</div>' +
+      '</div></div>',
+    content:
+      // Formatting toolbar
+      '<div style="background:#c0c0c0;border-bottom:2px solid #808080;padding:2px 4px;display:flex;gap:2px;align-items:center;flex-wrap:wrap">' +
+        '<select onchange="_pwFmt(\'fontName\',this.value);this.blur()" style="font-size:10px;border:2px inset #808080;height:20px;font-family:inherit">' +
+          ['Times New Roman','Arial','Courier New','Comic Sans MS','Verdana','Tahoma'].map(function(f){ return '<option>'+f+'</option>'; }).join('') +
+        '</select>' +
+        '<select onchange="_pwFmt(\'fontSize\',this.value);this.blur()" style="font-size:10px;border:2px inset #808080;height:20px;width:40px;font-family:inherit">' +
+          [1,2,3,4,5,6,7].map(function(s){ return '<option value="'+s+'"'+(s===3?' selected':'')+'>'+[8,10,12,14,18,24,36][s-1]+'</option>'; }).join('') +
+        '</select>' +
+        '<div style="width:1px;background:#808080;height:18px;margin:0 1px"></div>' +
+        '<button class="w-btn" style="font-weight:bold;min-width:22px;height:20px;padding:0 4px" onclick="_pwFmt(\'bold\')" title="Жирный"><b>Ж</b></button>' +
+        '<button class="w-btn" style="font-style:italic;min-width:22px;height:20px;padding:0 4px" onclick="_pwFmt(\'italic\')" title="Курсив"><i>К</i></button>' +
+        '<button class="w-btn" style="text-decoration:underline;min-width:22px;height:20px;padding:0 4px" onclick="_pwFmt(\'underline\')" title="Подчёркнутый"><u>Ч</u></button>' +
+        '<div style="width:1px;background:#808080;height:18px;margin:0 1px"></div>' +
+        '<button class="w-btn" style="min-width:22px;height:20px;padding:0 3px" onclick="_pwFmt(\'justifyLeft\')" title="По левому краю">◧</button>' +
+        '<button class="w-btn" style="min-width:22px;height:20px;padding:0 3px" onclick="_pwFmt(\'justifyCenter\')" title="По центру">◫</button>' +
+        '<button class="w-btn" style="min-width:22px;height:20px;padding:0 3px" onclick="_pwFmt(\'justifyRight\')" title="По правому краю">◨</button>' +
+        '<div style="width:1px;background:#808080;height:18px;margin:0 1px"></div>' +
+        '<button class="w-btn" style="min-width:22px;height:20px;padding:0 3px" onclick="_pwFmt(\'insertUnorderedList\')" title="Маркированный список">•≡</button>' +
+        '<button class="w-btn" style="min-width:22px;height:20px;padding:0 3px" onclick="_pwFmt(\'insertOrderedList\')" title="Нумерованный список">1≡</button>' +
+        '<div style="width:1px;background:#808080;height:18px;margin:0 1px"></div>' +
+        '<input type="color" value="#000000" onchange="_pwFmt(\'foreColor\',this.value)" title="Цвет текста" style="width:22px;height:20px;padding:0;border:2px inset #808080;cursor:pointer">' +
+        '<input type="color" value="#ffffff" onchange="_pwFmt(\'hiliteColor\',this.value)" title="Цвет выделения" style="width:22px;height:20px;padding:0;border:2px inset #808080;cursor:pointer">' +
+      '</div>' +
+      // Ruler
+      '<div style="background:#c0c0c0;border-bottom:1px solid #808080;height:14px;display:flex;align-items:center;padding:0 8px;font-size:9px;color:#444;font-family:\'Courier New\',monospace;letter-spacing:3px;overflow:hidden">' +
+        '|.....|.....|.....|.....|.....|.....|.....|.....|.....|.....|.....|.....|.....|.....' +
+      '</div>' +
+      // Page editor
+      '<div style="flex:1;overflow:auto;background:#808080;padding:12px">' +
+        '<div id="pw-editor" contenteditable="true" spellcheck="false" ' +
+          'style="background:#fff;min-height:400px;padding:40px 50px;font-family:Times New Roman,serif;font-size:14px;line-height:1.6;outline:none;box-shadow:2px 2px 8px rgba(0,0,0,0.4);margin:0 auto;max-width:560px">' +
+          '<p>Введите текст документа...</p>' +
+        '</div>' +
+      '</div>',
+    afterOpen: function() {
+      var ed = document.getElementById('pw-editor');
+      if (ed) ed.addEventListener('input', function() { _pwDirty = true; });
+      setTimeout(function() {
+        var cb = document.querySelector('#win_pukword .win-titlebar-btn[onclick*="closeWin"]');
+        if (cb) cb.setAttribute('onclick', '_pwClose()');
+      }, 50);
+    }
+  });
+}
+
+// --- ПукЭксель ---
+function appPukExcel() {
+  var id = 'pukexcel';
+  if (_wins[id]) { focusWin(id); if (_wins[id].min) restoreWin(id); return; }
+  var ROWS = 20, COLS = 8;
+  var _pxData = {}, _pxPath = null, _pxName = 'Книга1.xls', _pxDirty = false;
+  var _colLabels = 'ABCDEFGH'.split('');
+
+  function _pxGet(r, c) { return _pxData[r+','+c] || ''; }
+  function _pxSet(r, c, v) { _pxData[r+','+c] = v; _pxDirty = true; }
+
+  function _pxEval(val) {
+    if (!val || val[0] !== '=') return val;
+    try {
+      var expr = val.slice(1).toUpperCase();
+      // Parse range like A1:B3
+      var rangeMatch = expr.match(/^(SUM|AVG|MAX|MIN|COUNT)\(([A-H])(\d+):([A-H])(\d+)\)$/);
+      if (rangeMatch) {
+        var fn = rangeMatch[1], c1 = _colLabels.indexOf(rangeMatch[2]), r1 = parseInt(rangeMatch[3])-1,
+            c2 = _colLabels.indexOf(rangeMatch[4]), r2 = parseInt(rangeMatch[5])-1;
+        var vals = [];
+        for (var r = r1; r <= r2; r++) for (var c = c1; c <= c2; c++) {
+          var v = parseFloat(_pxGet(r, c)); if (!isNaN(v)) vals.push(v);
+        }
+        if (fn === 'SUM') return vals.reduce(function(a,b){return a+b;},0).toString();
+        if (fn === 'AVG') return vals.length ? (vals.reduce(function(a,b){return a+b;},0)/vals.length).toFixed(2) : '0';
+        if (fn === 'MAX') return vals.length ? Math.max.apply(null,vals).toString() : '0';
+        if (fn === 'MIN') return vals.length ? Math.min.apply(null,vals).toString() : '0';
+        if (fn === 'COUNT') return vals.length.toString();
+      }
+      // Simple cell ref like A1
+      var cellRef = expr.match(/^([A-H])(\d+)$/);
+      if (cellRef) return _pxGet(parseInt(cellRef[2])-1, _colLabels.indexOf(cellRef[1]));
+    } catch(ex) { return '#ERR'; }
+    return '#?';
+  }
+
+  function _pxRender() {
+    var tbl = document.getElementById('px-table');
+    if (!tbl) return;
+    var h = '<table style="border-collapse:collapse;font-size:11px;font-family:Arial,sans-serif">' +
+      '<tr><th style="background:#c0c0c0;border:1px solid #808080;width:30px;min-width:30px"></th>' +
+      _colLabels.map(function(l){ return '<th style="background:#c0c0c0;border:1px solid #808080;width:72px;min-width:72px;padding:1px 4px">' + l + '</th>'; }).join('') + '</tr>';
+    for (var r = 0; r < ROWS; r++) {
+      h += '<tr><td style="background:#c0c0c0;border:1px solid #808080;text-align:center;color:#444;padding:0 3px">' + (r+1) + '</td>';
+      for (var c = 0; c < COLS; c++) {
+        var raw = _pxGet(r, c), display = _pxEval(raw);
+        var isFormula = raw && raw[0] === '=';
+        h += '<td style="border:1px solid #c0c0c0;padding:0;background:#fff">' +
+          '<input type="text" value="' + display.replace(/"/g,'&quot;') + '" ' +
+            'data-r="'+r+'" data-c="'+c+'" data-raw="' + raw.replace(/"/g,'&quot;') + '" ' +
+            'style="width:70px;border:none;outline:none;padding:1px 3px;font-family:Arial,sans-serif;font-size:11px;background:' + (isFormula?'#fffff0':'#fff') + ';font-style:' + (isFormula?'italic':'normal') + '"' +
+            ' onfocus="this.value=this.dataset.raw"' +
+            ' onblur="_pxCell(this)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();_pxCell(this);var nr=this.closest(\'tr\').nextElementSibling;if(nr)nr.querySelector(\'input\')&&nr.querySelector(\'input\').focus();}if(event.key===\'Tab\'){event.preventDefault();_pxCell(this);var nc=this.closest(\'td\').nextElementSibling;if(nc)nc.querySelector(\'input\')&&nc.querySelector(\'input\').focus();}">' +
+          '</td>';
+      }
+      h += '</tr>';
+    }
+    h += '</table>';
+    tbl.innerHTML = h;
+  }
+
+  window._pxCell = function(inp) {
+    var r = parseInt(inp.dataset.r), c = parseInt(inp.dataset.c);
+    _pxSet(r, c, inp.value);
+    inp.dataset.raw = inp.value;
+    inp.value = _pxEval(inp.value);
+    inp.style.background = (inp.dataset.raw && inp.dataset.raw[0]==='=') ? '#fffff0' : '#fff';
+    inp.style.fontStyle = (inp.dataset.raw && inp.dataset.raw[0]==='=') ? 'italic' : 'normal';
+    // Update formula-dependent cells
+    _pxRender();
+  };
+  window._pxSave = function() {
+    if (_pxPath) _pxDoSave(_pxPath);
+    else win95input('Сохранить как', 'Имя файла:', _pxName, function(n){ if(n) _pxDoSave('C:/Мои документы/'+n); });
+  };
+  function _pxDoSave(path) {
+    _vfs.writeFile(path, JSON.stringify(_pxData));
+    _pxPath = path; _pxName = path.split('/').pop(); _pxDirty = false;
+    var tb = document.querySelector('#win_pukexcel .win-titlebar-text');
+    if (tb) tb.textContent = _pxName + ' — ПукЭксель';
+    win95balloon('Сохранено: ' + _pxName, '📊');
+    if (window._myDocsRefresh) _myDocsRefresh();
+  }
+  window._pxOpen = function() {
+    win95filePicker('C:/Мои документы', function(path, name) {
+      var c = _vfs.readFile(path);
+      if (!c) { win95msgbox('Файл не найден.', 'Ошибка', '⚠️'); return; }
+      try { _pxData = JSON.parse(c); } catch(e) { win95msgbox('Повреждённый файл.', 'Ошибка', '⚠️'); return; }
+      _pxPath = path; _pxName = name; _pxDirty = false;
+      var tb = document.querySelector('#win_pukexcel .win-titlebar-text');
+      if (tb) tb.textContent = name + ' — ПукЭксель';
+      _pxRender();
+    });
+  };
+  window._pxClose = function() {
+    if (_pxDirty) win95confirm('Сохранить изменения в "' + _pxName + '"?', function() { window._pxSave(); closeWin(id); }, function() { closeWin(id); });
+    else closeWin(id);
+  };
+
+  createWin({ id:id, title:'ПукЭксель — ' + _pxName, icon:'📊', w:620, h:420,
+    menu:
+      '<div class="win-mi" onclick="toggleMI(this)">Файл<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="_pxOpen()">📂 Открыть...</div>' +
+        '<div class="win-dd-item" onclick="_pxSave()">💾 Сохранить</div>' +
+        '<div class="win-dd-sep"></div>' +
+        '<div class="win-dd-item" onclick="_pxClose()">Выход</div>' +
+      '</div></div>' +
+      '<div class="win-mi" onclick="toggleMI(this)">Вставить<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="(function(){var r=document.querySelector(\'#px-table input:focus\');if(r){r.value=\'=SUM(A1:A5)\';_pxCell(r);}})()">Функция SUM...</div>' +
+        '<div class="win-dd-item" onclick="(function(){var r=document.querySelector(\'#px-table input:focus\');if(r){r.value=\'=AVG(A1:A5)\';_pxCell(r);}})()">Функция AVG...</div>' +
+      '</div></div>' +
+      '<div class="win-mi" onclick="toggleMI(this)">Справка<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="win95msgbox(\'Поддерживаемые формулы:\\n=SUM(A1:B5)\\n=AVG(A1:B5)\\n=MAX(A1:B5)\\n=MIN(A1:B5)\\n=COUNT(A1:B5)\\n=A1 (ссылка на ячейку)\',\'Формулы\',\'📊\')">Справка по формулам</div>' +
+        '<div class="win-dd-item" onclick="aboutWin(\'pukexcel\',\'ПукЭксель\',\'1.0\',\'📊\',\'Табличный процессор ПУКДОС 95.<br>ПукОфис 95 Standard Edition.\')">О программе</div>' +
+      '</div></div>',
+    content:
+      '<div style="background:#c0c0c0;border-bottom:2px solid #808080;padding:2px 6px;font-size:11px;display:flex;align-items:center;gap:6px">' +
+        '<span style="font-weight:bold;color:#000080">fx</span>' +
+        '<input type="text" id="px-formula-bar" placeholder="Введите значение или формулу (=SUM(A1:B3))" ' +
+          'style="flex:1;border:2px inset #808080;padding:2px 5px;font-family:\'Courier New\',monospace;font-size:11px;outline:none">' +
+      '</div>' +
+      '<div id="px-table" style="flex:1;overflow:auto;background:#fff"></div>',
+    afterOpen: function() {
+      _pxRender();
+      setTimeout(function() {
+        var cb = document.querySelector('#win_pukexcel .win-titlebar-btn[onclick*="closeWin"]');
+        if (cb) cb.setAttribute('onclick', '_pxClose()');
+      }, 50);
+    }
+  });
+}
+
+// --- ПукПрез ---
+function appPukPrez() {
+  var id = 'pukprez';
+  if (_wins[id]) { focusWin(id); if (_wins[id].min) restoreWin(id); return; }
+  var _ppSlides = [{ title: 'Слайд 1', body: 'Нажмите для редактирования содержимого слайда.', bg: '#ffffff', color: '#000000' }];
+  var _ppCur = 0, _ppPath = null, _ppName = 'Презентация1.ppt', _ppDirty = false;
+
+  function _ppRender() {
+    var panel = document.getElementById('pp-slides-panel');
+    var editor = document.getElementById('pp-editor');
+    if (!panel || !editor) return;
+    panel.innerHTML = _ppSlides.map(function(s, i) {
+      var isActive = i === _ppCur;
+      return '<div onclick="_ppSelect('+i+')" style="cursor:pointer;border:2px solid '+(isActive?'#000080':'#808080')+';background:'+s.bg+';color:'+s.color+';padding:4px;margin-bottom:4px;min-height:48px;font-size:9px;overflow:hidden">' +
+        '<div style="font-weight:bold;font-size:10px;margin-bottom:2px">' + s.title + '</div>' +
+        '<div style="font-size:8px;color:#666">' + s.body.substring(0,40) + (s.body.length>40?'...':'') + '</div>' +
+      '</div>';
+    }).join('');
+    var s = _ppSlides[_ppCur];
+    editor.innerHTML =
+      '<div id="pp-slide" style="background:'+s.bg+';color:'+s.color+';padding:30px 40px;flex:1;min-height:280px;display:flex;flex-direction:column;justify-content:center;border:2px inset #808080">' +
+        '<input type="text" id="pp-title-input" value="'+s.title.replace(/"/g,'&quot;')+'" ' +
+          'style="font-size:22px;font-weight:bold;font-family:Arial,sans-serif;border:none;border-bottom:2px dashed #ccc;outline:none;background:transparent;color:'+s.color+';width:100%;margin-bottom:16px" ' +
+          'oninput="_ppUpdateTitle(this.value)">' +
+        '<textarea id="pp-body-input" style="font-size:14px;font-family:Arial,sans-serif;border:1px dashed #ccc;outline:none;background:transparent;color:'+s.color+';width:100%;min-height:140px;resize:none;line-height:1.6" ' +
+          'oninput="_ppUpdateBody(this.value)">' + s.body + '</textarea>' +
+        '<div style="position:absolute;bottom:8px;right:12px;font-size:10px;color:#aaa">' + (_ppCur+1) + ' / ' + _ppSlides.length + '</div>' +
+      '</div>';
+    var sb = document.getElementById('sb_pukprez');
+    if (sb) sb.textContent = 'Слайд ' + (_ppCur+1) + ' из ' + _ppSlides.length;
+  }
+
+  window._ppSelect = function(i) { _ppCur = i; _ppRender(); };
+  window._ppUpdateTitle = function(v) { _ppSlides[_ppCur].title = v; _ppDirty = true; };
+  window._ppUpdateBody = function(v) { _ppSlides[_ppCur].body = v; _ppDirty = true; };
+  window._ppAddSlide = function() {
+    _ppSlides.push({ title: 'Слайд ' + (_ppSlides.length+1), body: 'Новый слайд.', bg: '#ffffff', color: '#000000' });
+    _ppCur = _ppSlides.length - 1; _ppDirty = true; _ppRender();
+  };
+  window._ppDelSlide = function() {
+    if (_ppSlides.length <= 1) { win95balloon('Нельзя удалить единственный слайд', '⚠️'); return; }
+    _ppSlides.splice(_ppCur, 1);
+    _ppCur = Math.max(0, _ppCur - 1); _ppDirty = true; _ppRender();
+  };
+  window._ppBg = function() {
+    win95input('Фон слайда', 'Цвет фона (hex, напр. #ffcc00):', _ppSlides[_ppCur].bg, function(v) {
+      if (v) { _ppSlides[_ppCur].bg = v; _ppDirty = true; _ppRender(); }
+    });
+  };
+  window._ppSave = function() {
+    if (_ppPath) _ppDoSave(_ppPath);
+    else win95input('Сохранить как', 'Имя файла:', _ppName, function(n){ if(n) _ppDoSave('C:/Мои документы/'+n); });
+  };
+  function _ppDoSave(path) {
+    _vfs.writeFile(path, JSON.stringify(_ppSlides));
+    _ppPath = path; _ppName = path.split('/').pop(); _ppDirty = false;
+    var tb = document.querySelector('#win_pukprez .win-titlebar-text');
+    if (tb) tb.textContent = _ppName + ' — ПукПрез';
+    win95balloon('Сохранено: ' + _ppName, '📑');
+    if (window._myDocsRefresh) _myDocsRefresh();
+  }
+  window._ppOpen = function() {
+    win95filePicker('C:/Мои документы', function(path, name) {
+      var c = _vfs.readFile(path);
+      if (!c) { win95msgbox('Файл не найден.', 'Ошибка', '⚠️'); return; }
+      try { _ppSlides = JSON.parse(c); } catch(e) { win95msgbox('Повреждённый файл.', 'Ошибка', '⚠️'); return; }
+      _ppCur = 0; _ppPath = path; _ppName = name; _ppDirty = false;
+      var tb = document.querySelector('#win_pukprez .win-titlebar-text');
+      if (tb) tb.textContent = name + ' — ПукПрез';
+      _ppRender();
+    });
+  };
+  window._ppClose = function() {
+    if (_ppDirty) win95confirm('Сохранить изменения в "' + _ppName + '"?', function() { window._ppSave(); closeWin(id); }, function() { closeWin(id); });
+    else closeWin(id);
+  };
+
+  createWin({ id:id, title:'ПукПрез — ' + _ppName, icon:'📑', w:700, h:460, status:'Слайд 1 из 1',
+    menu:
+      '<div class="win-mi" onclick="toggleMI(this)">Файл<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="_ppOpen()">📂 Открыть...</div>' +
+        '<div class="win-dd-item" onclick="_ppSave()">💾 Сохранить</div>' +
+        '<div class="win-dd-sep"></div>' +
+        '<div class="win-dd-item" onclick="_ppClose()">Выход</div>' +
+      '</div></div>' +
+      '<div class="win-mi" onclick="toggleMI(this)">Слайд<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="_ppAddSlide()">➕ Добавить слайд</div>' +
+        '<div class="win-dd-item" onclick="_ppDelSlide()">🗑️ Удалить слайд</div>' +
+        '<div class="win-dd-sep"></div>' +
+        '<div class="win-dd-item" onclick="_ppBg()">🎨 Фон слайда...</div>' +
+      '</div></div>' +
+      '<div class="win-mi" onclick="toggleMI(this)">Справка<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="aboutWin(\'pukprez\',\'ПукПрез\',\'1.0\',\'📑\',\'Редактор презентаций ПУКДОС 95.<br>ПукОфис 95 Standard Edition.\')">О программе</div>' +
+      '</div></div>',
+    content:
+      '<div style="display:flex;height:100%;gap:0">' +
+        '<div style="width:130px;min-width:130px;border-right:2px solid #808080;background:#c0c0c0;padding:4px;overflow-y:auto" id="pp-slides-panel"></div>' +
+        '<div style="flex:1;display:flex;flex-direction:column;overflow:auto;position:relative" id="pp-editor"></div>' +
+      '</div>',
+    afterOpen: function() {
+      _ppRender();
+      setTimeout(function() {
+        var cb = document.querySelector('#win_pukprez .win-titlebar-btn[onclick*="closeWin"]');
+        if (cb) cb.setAttribute('onclick', '_ppClose()');
+      }, 50);
+    }
+  });
+}
+
 // ==================== DEVELOPER MENU ====================
 function appDevMenu() {
   var id = 'devmenu';
@@ -1992,7 +2863,7 @@ function appDevMenu() {
       '<div style="font-weight:bold;margin-bottom:6px;color:#800000">⚠️ Системные инструменты разработчика</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">' +
         '<button class="w-btn" onclick="showBSOD()">💀 Синий экран</button>' +
-        '<button class="w-btn" onclick="showRandomError()">⚡ Случайная ошибка</button>' +
+        '<button class="w-btn" onclick="(function(){var e=_errorMessages[Math.floor(Math.random()*_errorMessages.length)];w95error(e[0],e[1],e[2]);})()">⚡ Случайная ошибка</button>' +
         '<button class="w-btn" onclick="doShutdown()">🔌 Выключение</button>' +
         '<button class="w-btn" onclick="location.reload()">🔄 Перезагрузка</button>' +
         '<button class="w-btn" onclick="win95balloon(\'Тестовый balloon!\',\'🎉\',\'DEV\')">🎈 Test Balloon</button>' +
@@ -2017,8 +2888,8 @@ function appDevMenu() {
     '<div data-tab-page="1" style="display:none;padding:8px;font-size:11px">' +
       '<b>Генераторы ошибок:</b>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px">' +
-        '<button class="w-btn" onclick="(function(){var e=_errorMessages[Math.floor(Math.random()*_errorMessages.length)];spawnErrorDlg(e[0],e[1],e[2]);})()">Случайная ошибка</button>' +
-        '<button class="w-btn" onclick="for(var i=0;i<3;i++)(function(n){setTimeout(function(){var e=_errorMessages[n%_errorMessages.length];spawnErrorDlg(e[0],e[1],e[2]);},n*600);})(i)">3 ошибки подряд</button>' +
+        '<button class="w-btn" onclick="(function(){var e=_errorMessages[Math.floor(Math.random()*_errorMessages.length)];w95error(e[0],e[1],e[2]);})()">Случайная ошибка</button>' +
+        '<button class="w-btn" onclick="for(var i=0;i<3;i++)(function(n){setTimeout(function(){var e=_errorMessages[n%_errorMessages.length];w95error(e[0],e[1],e[2]);},n*600);})(i)">3 ошибки подряд</button>' +
         '<button class="w-btn" onclick="(function(){var msgs=[\'💾 Диск A: не готов\',\'🌐 Сеть недоступна\',\'💨 Газ кончился\'];win95balloon(msgs[Math.floor(Math.random()*msgs.length)],\'⚠️\',\'Предупреждение\');})()">Balloon warning</button>' +
         '<button class="w-btn" onclick="showBSOD()">BSOD</button>' +
       '</div>' +
@@ -2072,7 +2943,7 @@ function appDevMenu() {
       '</div>' +
     '</div>';
 
-  createWin({ id:id, title:'🔧 Меню разработчика — ПУКДОС 95', icon:'🔧', w:460, h:340,
+  createWin({ id:id, title:'Меню разработчика — ПУКДОС 95', icon:'🔧', w:460, h:340,
     content: '<div style="padding:4px">' +
       '<div style="background:#800000;color:#fff;padding:4px 8px;font-size:11px;margin-bottom:4px">⚠️ РЕЖИМ РАЗРАБОТЧИКА — только для ООО ПУКПРОМ Engineering</div>' +
       tabHtml + p0 + p1 + p2 + p3 +
@@ -2082,85 +2953,7 @@ function appDevMenu() {
 
 // ==================== МОИ ДОКУМЕНТЫ ====================
 function appMyDocs() {
-  var id = 'mydocs';
-  if (_wins[id]) { focusWin(id); if (_wins[id].min) restoreWin(id); return; }
-
-  function _renderList() {
-    var items = _vfs.listDir('C:/Мои документы') || [];
-    if (items.length === 0) {
-      return '<div style="color:#808080;font-size:11px;padding:20px;text-align:center">Папка пуста</div>';
-    }
-    return '<div style="padding:4px">' + items.map(function(f) {
-      var icon = f.type === 'dir' ? '📁' : '��';
-      return '<div ondblclick="_myDocsOpen(\''+f.name+'\')" oncontextmenu="event.preventDefault();_myDocsCtx(event,\''+f.name+'\',\''+f.type+'\')" style="display:inline-block;width:72px;text-align:center;vertical-align:top;padding:6px 2px;cursor:pointer;font-size:11px" ' +
-        'onmouseover="this.style.background=\'#000080\';this.style.color=\'#fff\'" onmouseout="this.style.background=\'\';this.style.color=\'\'">' +
-        '<div style="font-size:24px">' + icon + '</div>' +
-        '<div style="word-break:break-all;font-size:10px;margin-top:2px">' + f.name + '</div>' +
-      '</div>';
-    }).join('') + '</div>';
-  }
-
-  window._myDocsOpen = function(name) {
-    var path = 'C:/Мои документы/' + name;
-    var entry = (_vfs.listDir('C:/Мои документы') || []).filter(function(f){ return f.name===name; })[0];
-    if (entry && entry.type === 'dir') {
-      win95toast('Открыто: ' + name);
-    } else {
-      var fc = _vfs.readFile(path);
-      if (fc !== null) appNotepad(name, fc, path);
-    }
-  };
-  window._myDocsRefresh = function() {
-    var cl = document.getElementById('mydocs-body');
-    if (cl) cl.innerHTML = _renderList();
-    var st = document.getElementById('mydocs-status');
-    if (st) st.textContent = (_vfs.listDir('C:/Мои документы')||[]).length + ' объектов';
-  };
-  window._myDocsNewFile = function() {
-    var name = prompt('Имя нового файла:');
-    if (!name) return;
-    _vfs.writeFile('C:/Мои документы/' + name, '');
-    _myDocsRefresh();
-  };
-  window._myDocsNewFolder = function() {
-    var name = prompt('Имя новой папки:');
-    if (!name) return;
-    _vfs.createDir('C:/Мои документы/' + name);
-    _myDocsRefresh();
-  };
-  window._myDocsDelete = function(name) {
-    _vfs.moveToTrash('C:/Мои документы/' + name);
-    win95balloon('Удалено: ' + name, '🗑️');
-    _myDocsRefresh();
-  };
-  window._myDocsCtx = function(e, name, type) {
-    showCtxPopup(e.clientX, e.clientY, [
-      { title: name },
-      { label: type === 'dir' ? '📂 Открыть' : '📄 Открыть', fn: function() { _myDocsOpen(name); } },
-      '-',
-      { label: '🗑️ Удалить', fn: function() { _myDocsDelete(name); } },
-      '-',
-      { label: 'ℹ️ Свойства', fn: function() { win95balloon(name + (type==='dir'?' (папка)':' (файл)'), 'ℹ️'); } },
-    ]);
-  };
-
-  createWin({ id:id, title:'Мои документы', icon:'📂', w:500, h:360,
-    menu:
-      '<div class="win-mi" onclick="toggleMI(this)">Файл<div class="win-dd">' +
-        '<div class="win-dd-item" onclick="_myDocsNewFile()">📄 Новый файл</div>' +
-        '<div class="win-dd-item" onclick="_myDocsNewFolder()">📁 Новая папка</div>' +
-        '<div class="win-dd-sep"></div>' +
-        '<div class="win-dd-item" onclick="closeWin(\'mydocs\')">Закрыть</div>' +
-      '</div></div>' +
-      '<div class="win-mi" onclick="toggleMI(this)">Вид<div class="win-dd">' +
-        '<div class="win-dd-item" onclick="_myDocsRefresh()">🔄 Обновить</div>' +
-      '</div></div>',
-    content:
-      '<div style="background:#fff;padding:4px;flex:1;overflow:auto;min-height:280px" id="mydocs-body">' +
-        _renderList() +
-      '</div>' +
-      '<div class="win-sb"><span class="win-sb-field" id="mydocs-status">' + (_vfs.listDir('C:/Мои документы')||[]).length + ' объектов</span></div>'
-  });
+  appExplorer('C:/Мои документы/');
 }
 
 // Расширяем Блокнот поддержкой VFS
@@ -2173,6 +2966,7 @@ function appNotepad(filename, content, vfsPath) {
   var text = content || '';
   var currentPath = vfsPath || null;
   var currentName = filename || 'Безымянный';
+  var _npDirty = false;
 
   function _save(path) {
     var ta = document.getElementById('np_ta_' + id);
@@ -2180,8 +2974,9 @@ function appNotepad(filename, content, vfsPath) {
     _vfs.writeFile(path, ta.value);
     currentPath = path;
     currentName = path.split('/').pop();
-    var tb = document.querySelector('#win_' + id + ' .win-titlebar span');
-    if (tb) tb.textContent = '📝 Блокнот — ' + currentName;
+    _npDirty = false;
+    var tb = document.querySelector('#win_' + id + ' .win-titlebar-text');
+    if (tb) tb.textContent = currentName + ' — Блокнот';
     win95balloon('Файл сохранён: ' + currentName, '📝');
     if (window._myDocsRefresh) _myDocsRefresh();
   }
@@ -2193,58 +2988,65 @@ function appNotepad(filename, content, vfsPath) {
   window['_npSaveAs_' + id] = function() { _npSaveAs_fn(); };
 
   function _npSaveAs_fn() {
-    var name = prompt('Имя файла:', currentName || 'документ.txt');
-    if (!name) return;
-    var dir = prompt('Папка (C:/Мои документы или другая):', 'C:/Мои документы');
-    if (!dir) return;
-    _save(dir + '/' + name);
+    win95input('Сохранить как', 'Имя файла:', currentName || 'документ.txt', function(name) {
+      if (!name) return;
+      _save('C:/Мои документы/' + name);
+    });
   }
 
   window['_npOpen_' + id] = function() {
-    var items = _vfs.listDir('C:/Мои документы') || [];
-    var names = items.filter(function(f){ return f.type==='file'; }).map(function(f){ return f.name; });
-    if (names.length === 0) { win95msgbox('Нет файлов в Мои документы.', 'ℹ', 'Открыть'); return; }
-    var name = prompt('Выберите файл:\n' + names.join('\n'));
-    if (!name) return;
-    var c = _vfs.readFile('C:/Мои документы/' + name);
-    if (c === null) { win95msgbox('Файл не найден.', '⚠', 'Ошибка'); return; }
-    var ta = document.getElementById('np_ta_' + id);
-    if (ta) ta.value = c;
-    currentPath = 'C:/Мои документы/' + name;
-    currentName = name;
-    var tb = document.querySelector('#win_' + id + ' .win-titlebar span');
-    if (tb) tb.textContent = '📝 Блокнот — ' + name;
+    win95filePicker('C:/Мои документы', function(path, name) {
+      var c = _vfs.readFile(path);
+      if (c === null) { win95msgbox('Файл не найден.', 'Ошибка', '⚠️'); return; }
+      var ta = document.getElementById('np_ta_' + id);
+      if (ta) ta.value = c;
+      currentPath = path;
+      currentName = name;
+      _npDirty = false;
+      var tb = document.querySelector('#win_' + id + ' .win-titlebar-text');
+      if (tb) tb.textContent = name + ' — Блокнот';
+    });
   };
 
-  var menubar =
-    '<div class="win-menubar">' +
-      '<span class="win-mi" onclick="toggleMenu(this)">Файл' +
-        '<div class="win-dd">' +
-          '<div class="win-dd-item" onclick="_npOpen_' + id + '()">📂 Открыть...</div>' +
-          '<div class="win-dd-item" onclick="_npSave_' + id + '()">💾 Сохранить</div>' +
-          '<div class="win-dd-item" onclick="_npSaveAs_' + id + '()">💾 Сохранить как...</div>' +
-          '<div class="win-dd-sep"></div>' +
-          '<div class="win-dd-item" onclick="closeWin(\'' + id + '\')">Выход</div>' +
-        '</div>' +
-      '</span>' +
-      '<span class="win-mi" onclick="toggleMenu(this)">Правка' +
-        '<div class="win-dd">' +
-          '<div class="win-dd-item" onclick="document.getElementById(\'np_ta_'+id+'\').select()">Выделить всё</div>' +
-        '</div>' +
-      '</span>' +
-      '<span class="win-mi" onclick="toggleMenu(this)">Справка' +
-        '<div class="win-dd">' +
-          '<div class="win-dd-item" onclick="aboutWin(\'notepad\',\'Блокнот\',\'1.0\',\'📝\',\'Простой текстовый редактор ПУКДОС 95\')">О программе</div>' +
-        '</div>' +
-      '</span>' +
-    '</div>';
-
-  createWin({ id:id, title:'📝 Блокнот — ' + currentName, icon:'📝', w:500, h:380,
-    content: menubar +
-      '<textarea id="np_ta_' + id + '" spellcheck="false" style="width:100%;flex:1;box-sizing:border-box;resize:none;border:none;outline:none;border-top:2px inset #c0c0c0;padding:4px;font-family:\'Courier New\',monospace;font-size:13px;background:#fff;min-height:280px">' +
+  createWin({ id:id, title:'Блокнот — ' + currentName, icon:'📝', w:500, h:380,
+    menu:
+      '<div class="win-mi" onclick="toggleMI(this)">Файл<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="_npOpen_' + id + '()">📂 Открыть...</div>' +
+        '<div class="win-dd-item" onclick="_npSave_' + id + '()">💾 Сохранить</div>' +
+        '<div class="win-dd-item" onclick="_npSaveAs_' + id + '()">💾 Сохранить как...</div>' +
+        '<div class="win-dd-sep"></div>' +
+        '<div class="win-dd-item" onclick="_npClose_' + id + '()">Выход</div>' +
+      '</div></div>' +
+      '<div class="win-mi" onclick="toggleMI(this)">Правка<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="document.getElementById(\'np_ta_' + id + '\').select()">Выделить всё</div>' +
+      '</div></div>' +
+      '<div class="win-mi" onclick="toggleMI(this)">Справка<div class="win-dd">' +
+        '<div class="win-dd-item" onclick="aboutWin(\'notepad\',\'Блокнот\',\'1.0\',\'📝\',\'Простой текстовый редактор ПУКДОС 95\')">О программе</div>' +
+      '</div></div>',
+    content:
+      '<textarea id="np_ta_' + id + '" spellcheck="false" style="width:100%;flex:1;box-sizing:border-box;resize:none;border:none;outline:none;padding:4px;font-family:\'Courier New\',monospace;font-size:13px;background:#fff;min-height:280px">' +
         text.replace(/</g,'&lt;').replace(/>/g,'&gt;') +
-      '</textarea>'
+      '</textarea>',
+    afterOpen: function() {
+      var ta = document.getElementById('np_ta_' + id);
+      if (ta) ta.addEventListener('input', function() { _npDirty = true; });
+      setTimeout(function() {
+        var closeBtn = document.querySelector('#win_' + id + ' .win-titlebar-btn[onclick*="closeWin"]');
+        if (closeBtn) closeBtn.setAttribute('onclick', '_npClose_' + id + '()');
+      }, 10);
+    }
   });
+
+  window['_npClose_' + id] = function() {
+    if (_npDirty) {
+      win95confirm('Сохранить изменения в "' + currentName + '"?',
+        function() { window['_npSave_' + id](); closeWin(id); },
+        function() { closeWin(id); }
+      );
+    } else {
+      closeWin(id);
+    }
+  };
 }
 
 // ==================== САПЁР ====================
@@ -2530,12 +3332,20 @@ function deskIconCtxMenu(e, appName, label) {
   var games = ['doom', 'minesweeper', 'solitaire'];
   var items;
   if (appName === 'trash') {
+    var trashCount = (_vfs.listDir('C:/Корзина/') || []).length;
     items = [
-      { title: 'Корзина' },
+      { title: 'Корзина' + (trashCount > 0 ? ' (' + trashCount + ')' : ' (пусто)') },
       { label: '🗑️ Открыть корзину', fn: function() { openApp('trash'); } },
-      { label: '🧹 Очистить корзину', fn: function() { if(window._vfs && _vfs.emptyTrash) _vfs.emptyTrash(); win95balloon('Корзина очищена', '🗑️'); } },
+      { label: '🧹 Очистить корзину', fn: function() {
+        if (trashCount === 0) { win95balloon('Корзина уже пуста', '🗑️'); return; }
+        if (window._trashEmpty) _trashEmpty();
+        else { _vfs.emptyTrash(); win95balloon('Корзина очищена', '🗑️'); }
+        // Refresh desktop icon
+        var ti = document.querySelector('.desktop-icon[data-app="trash"] .icon-img');
+        if (ti) ti.textContent = '🗑️';
+      }},
       '-',
-      { label: 'ℹ️ Свойства', fn: function() { win95balloon('Корзина — системная папка', 'ℹ️'); } }
+      { label: 'ℹ️ Свойства', fn: function() { win95msgbox('Корзина\nОбъектов: ' + trashCount + '\nПуть: C:/Корзина/', 'Свойства корзины', '🗑️'); } }
     ];
   } else if (games.indexOf(appName) !== -1) {
     items = [
@@ -2589,13 +3399,33 @@ function initDesktopIcons() {
     minesweeper: { x: 110, y: 200 },
     solitaire:   { x: 110, y: 290 },
     chat:        { x: 110, y: 380 },
-    pukmail:     { x: 110, y: 470 }
+    pukmail:     { x: 110, y: 470 },
+    pukword:     { x: 204, y: 16 },
+    pukexcel:    { x: 204, y: 110 },
+    pukprez:     { x: 204, y: 200 }
   };
 
   var savedPos = {};
   try { savedPos = JSON.parse(localStorage.getItem('pukdos_desktop_icons') || '{}'); } catch(e) {}
 
-  var dragIcon = null, dragOffX = 0, dragOffY = 0;
+  // Update trash desktop icon to reflect VFS contents
+  function _updateTrashIcon() {
+    var ti = document.querySelector('.desktop-icon[data-app="trash"] .icon-img');
+    if (!ti) return;
+    var items = _vfs.listDir('C:/Корзина/') || [];
+    ti.textContent = items.length > 0 ? '🗑️' : '🗑️'; // same emoji but could swap
+    // Update label to show count
+    var tl = document.querySelector('.desktop-icon[data-app="trash"] .icon-label');
+    if (tl) tl.textContent = items.length > 0 ? 'Корзина (' + items.length + ')' : 'Корзина';
+  }
+  window._updateTrashIcon = _updateTrashIcon;
+  _updateTrashIcon();
+
+  // dragging state: primary icon + offsets for all co-dragged icons
+  var dragActive = false;
+  var dragStartX = 0, dragStartY = 0;
+  var dragGroup = []; // [{ el, startLeft, startTop }]
+  var dragMoved = false;
 
   var icons = document.querySelectorAll('.desktop-icon[data-app]');
   icons.forEach(function(icon) {
@@ -2611,47 +3441,83 @@ function initDesktopIcons() {
 
     icon.addEventListener('click', function(e) {
       e.stopPropagation();
-      document.querySelectorAll('.desktop-icon.selected').forEach(function(el) { el.classList.remove('selected'); });
-      icon.classList.add('selected');
+      // If Ctrl held, toggle selection without clearing others
+      if (e.ctrlKey) {
+        icon.classList.toggle('selected');
+      } else if (!dragMoved) {
+        // Only deselect-and-select if we didn't just finish a drag
+        document.querySelectorAll('.desktop-icon.selected').forEach(function(el) { el.classList.remove('selected'); });
+        icon.classList.add('selected');
+      }
     });
 
     icon.addEventListener('contextmenu', function(e) {
       e.preventDefault();
       e.stopPropagation();
+      // Select this icon if not already in selection
+      if (!icon.classList.contains('selected')) {
+        document.querySelectorAll('.desktop-icon.selected').forEach(function(el) { el.classList.remove('selected'); });
+        icon.classList.add('selected');
+      }
       deskIconCtxMenu(e, app, icon.getAttribute('data-label') || app);
     });
 
     icon.addEventListener('mousedown', function(e) {
       if (e.button !== 0) return;
-      dragIcon = icon;
-      var rect = icon.getBoundingClientRect();
-      dragOffX = e.clientX - rect.left;
-      dragOffY = e.clientY - rect.top;
-      icon.style.zIndex = 1000;
+      // If icon isn't selected yet, select it immediately (deselecting others)
+      if (!icon.classList.contains('selected') && !e.ctrlKey) {
+        document.querySelectorAll('.desktop-icon.selected').forEach(function(el) { el.classList.remove('selected'); });
+        icon.classList.add('selected');
+      }
+      // Build drag group from all currently selected icons
+      dragGroup = [];
+      document.querySelectorAll('.desktop-icon.selected').forEach(function(el) {
+        dragGroup.push({
+          el: el,
+          startLeft: parseInt(el.style.left) || 0,
+          startTop:  parseInt(el.style.top)  || 0
+        });
+        el.style.zIndex = 1000;
+      });
+      dragActive = true;
+      dragMoved = false;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
       e.preventDefault();
+      e.stopPropagation();
     });
   });
 
   document.addEventListener('mousemove', function(e) {
-    if (!dragIcon) return;
-    var desktop = document.getElementById('desktop');
-    if (!desktop) return;
-    var dr = desktop.getBoundingClientRect();
-    var nx = Math.max(0, e.clientX - dr.left - dragOffX);
-    var ny = Math.max(0, e.clientY - dr.top - dragOffY);
-    dragIcon.style.left = nx + 'px';
-    dragIcon.style.top = ny + 'px';
+    if (!dragActive || dragGroup.length === 0) return;
+    var dx = e.clientX - dragStartX;
+    var dy = e.clientY - dragStartY;
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) dragMoved = true;
+    if (!dragMoved) return;
+    var desktopEl = document.getElementById('desktop');
+    var dr = desktopEl ? desktopEl.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+    dragGroup.forEach(function(item) {
+      var nx = Math.max(0, Math.min(item.startLeft + dx, dr.width - item.el.offsetWidth));
+      var ny = Math.max(0, Math.min(item.startTop  + dy, dr.height - item.el.offsetHeight - 32));
+      item.el.style.left = nx + 'px';
+      item.el.style.top  = ny + 'px';
+    });
   });
 
   document.addEventListener('mouseup', function() {
-    if (!dragIcon) return;
-    dragIcon.style.zIndex = '';
-    var app = dragIcon.getAttribute('data-app');
+    if (!dragActive) return;
+    dragActive = false;
+    if (!dragMoved) { dragGroup = []; return; }
+    // Save all moved icons to localStorage
     var allPos = {};
     try { allPos = JSON.parse(localStorage.getItem('pukdos_desktop_icons') || '{}'); } catch(ex) {}
-    allPos[app] = { x: parseInt(dragIcon.style.left), y: parseInt(dragIcon.style.top) };
+    dragGroup.forEach(function(item) {
+      item.el.style.zIndex = '';
+      var a = item.el.getAttribute('data-app');
+      if (a) allPos[a] = { x: parseInt(item.el.style.left), y: parseInt(item.el.style.top) };
+    });
     localStorage.setItem('pukdos_desktop_icons', JSON.stringify(allPos));
-    dragIcon = null;
+    dragGroup = [];
   });
 
   var desktop = document.getElementById('desktop');
@@ -2662,4 +3528,43 @@ function initDesktopIcons() {
       }
     });
   }
+
+  // Rubber-band selection on desktop
+  (function() {
+    if (!desktop) return;
+    var rb = null, sx = 0, sy = 0, rbDragging = false;
+
+    desktop.addEventListener('mousedown', function(e) {
+      if (e.target !== desktop) return;
+      if (e.button !== 0) return;
+      rbDragging = true;
+      sx = e.clientX; sy = e.clientY;
+      rb = document.createElement('div');
+      rb.style.cssText = 'position:fixed;border:1px dotted #fff;background:rgba(0,0,128,0.2);pointer-events:none;z-index:9000;';
+      rb.style.left = sx + 'px'; rb.style.top = sy + 'px';
+      rb.style.width = '0'; rb.style.height = '0';
+      document.body.appendChild(rb);
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function(e) {
+      if (!rbDragging || !rb) return;
+      var x = Math.min(e.clientX, sx), y = Math.min(e.clientY, sy);
+      var w = Math.abs(e.clientX - sx), h = Math.abs(e.clientY - sy);
+      rb.style.left = x + 'px'; rb.style.top = y + 'px';
+      rb.style.width = w + 'px'; rb.style.height = h + 'px';
+      var rbRect = { left: x, right: x+w, top: y, bottom: y+h };
+      document.querySelectorAll('.desktop-icon').forEach(function(icon) {
+        var r = icon.getBoundingClientRect();
+        var inside = r.left < rbRect.right && r.right > rbRect.left && r.top < rbRect.bottom && r.bottom > rbRect.top;
+        icon.classList.toggle('selected', inside);
+      });
+    });
+
+    document.addEventListener('mouseup', function() {
+      if (!rbDragging) return;
+      rbDragging = false;
+      if (rb) { rb.remove(); rb = null; }
+    });
+  })();
 }

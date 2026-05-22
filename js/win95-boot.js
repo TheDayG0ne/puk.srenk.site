@@ -1,4 +1,4 @@
-// ==================== CONTROL PANEL SETTINGS STORE ====================
+﻿// ==================== CONTROL PANEL SETTINGS STORE ====================
 var _cpSet = (function(){
   var def = {
     mouse:    { speed: 5, dblClick: 5, leftHanded: false, trails: false },
@@ -222,28 +222,17 @@ function _bootFromCD(onDone) {
 }
 
 function _runCDScenario(disc, onDone) {
-  var cdScenes = {
-    cd95:    { icon:'💿', title:'ПУКДОС 95 CD', sub:'Полная установка с диска...', msgs:['Запуск с CD...','Загрузка мастера установки...','Проверка требований...','Подготовка диска...','Запуск ПУКДОС 95!'], final: onDone },
-    pukpro:  { icon:'💿', title:'Пуколайзер PRO', sub:'Максимальные пуки для максимальных нужд', msgs:['Загрузка Пуколайзер PRO...','Инициализация турбо-пука...','Активация лицензии...','Оптимизация газовых каналов...','Готов к работе!'], final: onDone },
-    gazsim:  { icon:'💿', title:'Газовые симуляторы Deluxe', sub:'Профессиональная симуляция', msgs:['Чтение диска...','Загрузка физического движка...','Инициализация частиц...','Подготовка сценариев...','Запуск симулятора...'], final: onDone },
-    doom:    { icon:'💿', title:'DOOM: Пуковая редакция', sub:'id Software + ПУКПРОМ', msgs:['Загрузка WAD...','Инициализация рендерера...','Загрузка звуков пуков...','Настройка управления...','DOOM готов. Убивай монстров!'], final: function(){ onDone(); setTimeout(function(){ openApp('doom'); }, 1200); } },
-    ency:    { icon:'💿', title:'Энциклопедия Пуков', sub:'2000+ статей о пуках', msgs:['Чтение индекса...','Загрузка иллюстраций...','Инициализация поиска...','Проверка целостности...','Энциклопедия готова.'], final: onDone }
-  };
-  var sc = cdScenes[disc.scenario] || cdScenes['cd95'];
-  _showBootUI(sc.icon, sc.title, sc.sub);
-  _runBootProgress(sc.msgs, sc.final);
-}
-
-function _runCDScenario(disc, onDone) {
-  // After any CD scenario that leads to ПУКДОС 95, show its boot screen first
-  function _thenBoot() { _bootFromHDD(onDone); }
+  function _thenBoot(cdApp) {
+    if (cdApp) window._pendingCDApp = cdApp;
+    _bootFromHDD(onDone);
+  }
 
   var cdScenes = {
-    cd95:    { icon:'💿', title:'ПУКДОС 95 CD', sub:'Полная установка с диска...', msgs:['Запуск с CD...','Загрузка мастера установки...','Проверка требований...','Подготовка диска...','Запуск установщика ПУКДОС 95!'], final: function(){ _bootSetup95(_thenBoot); } },
-    pukpro:  { icon:'💿', title:'Пуколайзер PRO', sub:'Максимальные пуки для максимальных нужд', msgs:['Загрузка Пуколайзер PRO...','Инициализация турбо-пука...','Активация лицензии...','Оптимизация газовых каналов...','Готов к работе!'], final: _thenBoot },
-    gazsim:  { icon:'💿', title:'Газовые симуляторы Deluxe', sub:'Профессиональная симуляция', msgs:['Чтение диска...','Загрузка физического движка...','Инициализация частиц...','Подготовка сценариев...','Запуск симулятора...'], final: _thenBoot },
-    doom:    { icon:'💿', title:'DOOM: Пуковая редакция', sub:'id Software + ПУКПРОМ', msgs:['Загрузка WAD...','Инициализация рендерера...','Загрузка звуков пуков...','Настройка управления...','DOOM готов. Убивай монстров!'], final: function(){ _thenBoot(); setTimeout(function(){ openApp('doom'); }, 2500); } },
-    ency:    { icon:'💿', title:'Энциклопедия Пуков', sub:'2000+ статей о пуках', msgs:['Чтение индекса...','Загрузка иллюстраций...','Инициализация поиска...','Проверка целостности...','Энциклопедия готова.'], final: _thenBoot }
+    cd95:   { icon:'💿', title:'ПУКДОС 95 CD', sub:'Полная установка с диска...', msgs:['Запуск с CD...','Загрузка мастера установки...','Проверка требований...','Подготовка диска...','Запуск установщика ПУКДОС 95!'], final: function(){ _bootSetup95(function(){ _thenBoot(null); }); } },
+    pukpro: { icon:'💿', title:'Пуколайзер PRO', sub:'Максимальные пуки для максимальных нужд', msgs:['Загрузка Пуколайзер PRO...','Инициализация турбо-пука...','Активация лицензии...','Оптимизация газовых каналов...','Готов к работе!'], final: function(){ _thenBoot('pukpro'); } },
+    gazsim: { icon:'💿', title:'Газовые симуляторы Deluxe', sub:'Профессиональная симуляция', msgs:['Чтение диска...','Загрузка физического движка...','Инициализация частиц...','Подготовка сценариев...','Запуск симулятора...'], final: function(){ _thenBoot('gazsim'); } },
+    doom:   { icon:'💿', title:'DOOM: Пуковая редакция', sub:'id Software + ПУКПРОМ', msgs:['Загрузка WAD...','Инициализация рендерера...','Загрузка звуков пуков...','Настройка управления...','DOOM готов. Убивай монстров!'], final: function(){ _thenBoot('doom'); } },
+    ency:   { icon:'💿', title:'Энциклопедия Пуков', sub:'2000+ статей о пуках', msgs:['Чтение индекса...','Загрузка иллюстраций...','Инициализация поиска...','Проверка целостности...','Энциклопедия готова.'], final: function(){ _thenBoot('ency'); } }
   };
   var sc = cdScenes[disc.scenario] || cdScenes['cd95'];
   _showBootUI(sc.icon, sc.title, sc.sub);
@@ -670,12 +659,25 @@ function _bootSetup95(onDone) {
     if (_setupStep > 0) { _setupStep--; _setupRender(); }
   };
   window._setupFinish = function() {
-    boot.style.transition = 'opacity 0.4s'; boot.style.opacity = '0';
+    // Show restarting screen
+    boot.innerHTML =
+      '<div style="text-align:center;color:#c0c0c0;font-family:\'Courier New\',monospace">' +
+        '<div style="font-size:32px;margin-bottom:12px">🔄</div>' +
+        '<div style="font-size:16px;font-weight:bold;margin-bottom:8px">Перезагрузка системы...</div>' +
+        '<div style="font-size:11px;color:#808080">ПУКДОС 95 установлен. Выполняется перезагрузка.<br>Пожалуйста, подождите.</div>' +
+      '</div>';
+    // Reset all non-BIOS localStorage keys
     setTimeout(function() {
-      boot.style.display = 'none'; boot.style.opacity = '';
-      boot.style.alignItems = ''; boot.style.justifyContent = '';
-      if (onDone) onDone();
-    }, 400);
+      try {
+        var biosData = localStorage.getItem('pukdos_bios');
+        localStorage.clear();
+        if (biosData) localStorage.setItem('pukdos_bios', biosData);
+        // firstRun flag: NOT set — so setup wizard will run on next boot
+        // (pukdos_first_run is intentionally not restored)
+      } catch(e) {}
+      // Full page reload to restart from BIOS
+      location.reload();
+    }, 2500);
   };
   // Expose _setupData globally so inline HTML handlers (onchange/oninput) can write to it
   window._setupData = _setupData;
@@ -1067,6 +1069,47 @@ function _bootAntiGas(onDone) {
 }
 
 function startBootScreen() {
+  // Check BIOS User Password
+  if (typeof _biosSet !== 'undefined' && _biosSet.userPass && _biosSet.userPassEnabled) {
+    var bootEl = document.getElementById('boot');
+    if (bootEl) {
+      bootEl.style.display = 'flex';
+      bootEl.style.alignItems = 'center';
+      bootEl.style.justifyContent = 'center';
+      bootEl.innerHTML =
+        '<div style="text-align:center;font-family:\'Courier New\',monospace;color:#c0c0c0">' +
+          '<div style="font-size:24px;margin-bottom:16px">🔒</div>' +
+          '<div style="font-size:14px;font-weight:bold;margin-bottom:8px">BIOS USER PASSWORD</div>' +
+          '<div style="font-size:11px;margin-bottom:12px">Введите пароль для загрузки:</div>' +
+          '<input type="password" id="bios-pass-input" style="background:#000;border:1px inset #808080;color:#0f0;font-family:monospace;font-size:13px;padding:4px 8px;margin-bottom:8px;text-align:center;outline:none" autofocus>' +
+          '<div id="bios-pass-err" style="color:#f00;font-size:10px;min-height:14px"></div>' +
+        '</div>';
+      setTimeout(function() {
+        var inp = bootEl.querySelector('#bios-pass-input');
+        if (inp) {
+          inp.focus();
+          inp.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+              if (inp.value === _biosSet.userPass) {
+                bootEl.style.display = 'none';
+                bootEl.style.alignItems = '';
+                bootEl.style.justifyContent = '';
+                _doStartBootScreen();
+              } else {
+                document.getElementById('bios-pass-err').textContent = 'Неверный пароль. Попробуйте ещё раз.';
+                inp.value = '';
+              }
+            }
+          });
+        }
+      }, 50);
+      return;
+    }
+  }
+  _doStartBootScreen();
+}
+
+function _doStartBootScreen() {
   var dev = _biosSet.bootDevice1 || 'HDD (💨)';
   if (dev === 'Floppy (💾)') {
     _bootFromFloppy(showLoginScreen);
@@ -1224,13 +1267,19 @@ function _afterLogin() {
   }
   // Apply cursor trails if saved
   if (_cpSet.mouse && _cpSet.mouse.trails) _applyCursorTrails(true);
+  // Init desktop icons (positions, drag, context menus)
+  if (typeof initDesktopIcons === 'function') initDesktopIcons();
   // First run check
   var firstRun = !localStorage.getItem('pukdos_first_run');
   if (firstRun) {
     setTimeout(function() { openApp('welcome'); }, 600);
     setTimeout(function() { startSetupWizard(); }, 1200);
-  } else {
-    setTimeout(function() { openApp('welcome'); }, 500);
+  }
+  // Open app requested by CD boot (after desktop is ready)
+  if (window._pendingCDApp) {
+    var _cdApp = window._pendingCDApp;
+    window._pendingCDApp = null;
+    setTimeout(function() { openApp(_cdApp); }, 1500);
   }
 }
 

@@ -5,6 +5,17 @@
   var biosOut = document.getElementById('bios-out');
   if (!biosEl || !biosOut) { startBootScreen(); return; }
 
+  // Theme support — other OS pages load their own theme before this script
+  var _biosTheme = window.W95_THEME || {};
+  var _biosName      = _biosTheme.biosName      || 'ПУКПРОМ BIOS v4.20.69';
+  var _biosLogo      = _biosTheme.biosLogo      || 'PUKPROM SYSTEMS INC.';
+  var _biosTagline   = _biosTheme.biosTagline   || '"Технологии газового превосходства с 1993 года"';
+  var _biosProcessor = _biosTheme.biosProcessor || 'Pentium Puk(tm) @ 420 MHz';
+  var _biosHDD       = _biosTheme.biosHDD       || 'ПУКПРОМ HDD 420MB';
+  var _biosCDROM     = _biosTheme.biosCDROM     || 'CD-ROM ПУКПРОМ x24';
+  var _osName        = _biosTheme.bootTitle     || 'ПУКДОС 95';
+  var _manufacturer  = _biosTheme.manufacturer  || 'PukProm Inc.';
+
   var ASCII_LOGO = [
     ' ______  __  __ __  __ ____  ____  ____  __  __',
     ' |  _ \\ | | | || |/ /|  _ \\|  _ \\/ __ \\|  \\/  |',
@@ -12,41 +23,41 @@
     ' |  __/ | |_| ||   \\ |  __/|  _ <| |__| | |  | |',
     ' |_|     \\___/ |_|\\_\\|_|   |_| \\_\\\\____/|_|  |_|',
     '',
-    '     P U K P R O M   S Y S T E M S   I N C.',
-    '   "Технологии газового превосходства с 1993 года"',
+    '     ' + _biosLogo,
+    '   ' + _biosTagline,
   ];
 
   var BIOS_LINES = [
     { text: '', delay: 0 },
-    { text: 'ПУКПРОМ BIOS v4.20.69, Copyright (C) 1993-' + new Date().getFullYear() + ' PukProm Inc.', delay: 60, color: '#fff' },
-    { text: 'PukProm PUK-420 BIOS', delay: 30, color: '#fff' },
+    { text: _biosName + ', Copyright (C) 1993-' + new Date().getFullYear() + ' ' + _manufacturer, delay: 60, color: '#fff' },
+    { text: _biosLogo, delay: 30, color: '#fff' },
     { text: '', delay: 30 },
-    { text: 'CPU: Pentium Puk(tm) @ 420 MHz', delay: 80 },
-    { text: 'Coprocessor: Enabled (Gas Mode)', delay: 60 },
+    { text: 'CPU: ' + _biosProcessor, delay: 80 },
+    { text: 'Coprocessor: Enabled', delay: 60 },
     { text: 'CPU CACHE: Enabled', delay: 50 },
     { text: '', delay: 30 },
     { text: 'Memory Test: ', delay: 100, noNewline: true },
     { text: '65536K OK', delay: 800, append: true, color: '#0f0' },
     { text: '', delay: 20 },
     { text: 'Extended Memory: 65536K', delay: 60 },
-    { text: 'Gas Reserve Memory: 69420K', delay: 60 },
+    { text: 'Reserved Memory: 384K', delay: 60 },
     { text: '', delay: 40 },
-    { text: 'BIOS-e820: Int 15h AX=E820h fart map has 6 entries', delay: 70 },
-    { text: 'Detecting Primary Master ... ПУКПРОМ HDD 420MB', delay: 200 },
+    { text: 'BIOS-e820: Int 15h AX=E820h map has 6 entries', delay: 70 },
+    { text: 'Detecting Primary Master ... ' + _biosHDD, delay: 200 },
     { text: 'Detecting Primary Slave  ... None', delay: 150 },
-    { text: 'Detecting Secondary      ... CD-ROM ПУКПРОМ x24', delay: 150 },
+    { text: 'Detecting Secondary      ... ' + _biosCDROM, delay: 150 },
     { text: '', delay: 40 },
     { text: 'PCI device listing...', delay: 80 },
-    { text: '  Bus 0, device 0: VGA Puk 2MB', delay: 50 },
-    { text: '  Bus 0, device 1: SoundBlaster Puk16 Pro', delay: 50 },
-    { text: '  Bus 0, device 2: 56k Puk-Modem', delay: 50 },
+    { text: '  Bus 0, device 0: VGA compatible controller', delay: 50 },
+    { text: '  Bus 0, device 1: Audio controller', delay: 50 },
+    { text: '  Bus 0, device 2: Modem', delay: 50 },
     { text: '', delay: 40 },
     { text: 'Checking NVRAM...', delay: 120 },
-    { text: 'NVRAM OK (69 пуков обнаружено)', delay: 80 },
+    { text: 'NVRAM OK', delay: 80 },
     { text: '', delay: 50 },
-    { text: 'Press DEL to enter SETUP, F1 to continue', delay: 0, color: '#ff0' },
+    { text: 'Press DEL to enter SETUP, F8 for Boot Menu', delay: 0, color: '#ff0' },
     { text: '', delay: 30 },
-    { text: 'Starting ПУКДОС 95...', delay: 1200, color: '#0ff' },
+    { text: 'Starting ' + _osName + '...', delay: 1200, color: '#0ff' },
   ];
 
   // Render ASCII logo first (instantly)
@@ -104,6 +115,31 @@
       e.preventDefault();
       biosSetupActive = true;
       clearTimeout(biosAutoTimer);
+      if (_biosSet && _biosSet.supervisorPass && _biosSet.supervisorPassEnabled) {
+        showBiosEntryPasswordPrompt(function(entered) {
+          if (entered !== _biosSet.supervisorPass) {
+            biosSetupActive = false;
+            var denied = document.createElement('div');
+            denied.style.color = '#f00';
+            denied.textContent = 'Access Denied.';
+            biosOut.appendChild(denied);
+            scheduleBiosEnd();
+            return;
+          }
+          showBiosSetup(function() {
+            biosSetupActive = false;
+            biosFinished = true;
+            document.removeEventListener('keydown', biosKeyHandler);
+            biosEl.style.transition = 'opacity 0.5s';
+            biosEl.style.opacity = '0';
+            setTimeout(function() {
+              biosEl.style.display = 'none';
+              startBootScreen();
+            }, 500);
+          });
+        });
+        return;
+      }
       showBiosSetup(function() {
         biosSetupActive = false;
         biosFinished = true;
@@ -115,7 +151,152 @@
           startBootScreen();
         }, 500);
       });
+    } else if (e.key === 'F8' && !biosSetupActive && !biosFinished) {
+      e.preventDefault();
+      document.removeEventListener('keydown', biosKeyHandler);
+      showBootMenu();
     }
+  }
+
+  function showBiosEntryPasswordPrompt(callback) {
+    // Build a BIOS-style pseudo-graphic password box over the POST screen
+    var passDiv = document.createElement('div');
+    passDiv.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999998;font-family:"Courier New",monospace;font-size:13px;color:#aaa;';
+    passDiv.innerHTML =
+      '<div style="background:#00007b;color:#aaa;">' +
+        '<div>┌──────────────────────────────────────────┐</div>' +
+        '<div>│  <span style="background:#aaa;color:#00007b;padding:0 4px;font-weight:bold">BIOS Security</span>                            │</div>' +
+        '<div>├──────────────────────────────────────────┤</div>' +
+        '<div>│                                          │</div>' +
+        '<div>│  Supervisor Password is required.        │</div>' +
+        '<div>│                                          │</div>' +
+        '<div style="display:flex;align-items:center">│  Password: <input type="password" id="bios-entry-pass" style="width:220px;background:#000080;border:none;border-bottom:1px solid #0ff;color:#0ff;font-family:\'Courier New\',monospace;font-size:13px;padding:1px 4px;outline:none;">  │</div>' +
+        '<div>│                                          │</div>' +
+        '<div>│  Press ENTER to confirm, ESC to cancel   │</div>' +
+        '<div>│                                          │</div>' +
+        '<div>└──────────────────────────────────────────┘</div>' +
+      '</div>';
+    document.body.appendChild(passDiv);
+    var inp = passDiv.querySelector('#bios-entry-pass');
+    if (inp) inp.focus();
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        var entered = inp.value;
+        passDiv.remove();
+        callback(entered);
+        e.preventDefault();
+        e.stopPropagation();
+      } else if (e.key === 'Escape') {
+        passDiv.remove();
+        callback('');
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      e.stopPropagation();
+    });
+  }
+
+  // ---- F8 Boot Menu ----
+  var bootMenuActive = false;
+
+  function showBootMenu() {
+    if (bootMenuActive) return;
+    bootMenuActive = true;
+    clearTimeout(biosAutoTimer);
+
+    var osList = [
+      { name: 'ПУКДОС 95',  icon: '💨', url: (function() {
+          // Determine relative path back to root
+          var p = window.location.pathname;
+          if (p.indexOf('/newin/') !== -1 || p.indexOf('/win98/') !== -1 || p.indexOf('/win31/') !== -1) return '../win95.html';
+          return 'win95.html';
+        })() },
+      { name: 'NeWIN 95',   icon: '🪟', url: (function() {
+          var p = window.location.pathname;
+          if (p.indexOf('/newin/') !== -1) return '.';
+          return 'newin/';
+        })() },
+      { name: 'Windows 98', icon: '🪟', url: (function() {
+          var p = window.location.pathname;
+          if (p.indexOf('/win98/') !== -1) return '.';
+          return 'win98/';
+        })() },
+      { name: 'Windows 3.1', icon: '🪟', url: (function() {
+          var p = window.location.pathname;
+          if (p.indexOf('/win31/') !== -1) return '.';
+          return 'win31/';
+        })() },
+    ];
+
+    var selIdx = 0;
+
+    var overlay = document.createElement('div');
+    overlay.id = 'bios-boot-menu';
+    overlay.style.cssText = [
+      'position:fixed;inset:0;background:rgba(0,0,0,0.85)',
+      'display:flex;align-items:center;justify-content:center',
+      'z-index:9999999;font-family:"Courier New",monospace;font-size:13px;color:#aaa'
+    ].join(';');
+
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#00007b;color:#aaa;min-width:380px;padding:0;border:1px solid #aaa';
+
+    function renderMenu() {
+      box.innerHTML =
+        '<div style="background:#aaa;color:#00007b;font-weight:bold;padding:2px 8px;text-align:center">Boot Manager</div>' +
+        '<div style="padding:12px 16px;">' +
+          '<div style="margin-bottom:8px;color:#fff">Select operating system to start:</div>' +
+          osList.map(function(os, i) {
+            var sel = i === selIdx;
+            return '<div style="padding:3px 8px;cursor:pointer;' +
+              (sel ? 'background:#aaa;color:#00007b;font-weight:bold' : '') + '">' +
+              os.icon + '  ' + os.name +
+              '</div>';
+          }).join('') +
+          '<div style="margin-top:10px;color:#aaa;font-size:11px">↑↓ — выбор   Enter — загрузить   ESC — отмена</div>' +
+        '</div>';
+
+      // Re-attach click handlers
+      var items = box.querySelectorAll('div[style*="cursor:pointer"]');
+      items.forEach(function(el, i) {
+        el.addEventListener('click', function() {
+          selIdx = i;
+          renderMenu();
+          setTimeout(function() { launchSelected(); }, 200);
+        });
+      });
+    }
+
+    function launchSelected() {
+      window.location.href = osList[selIdx].url;
+    }
+
+    renderMenu();
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+
+    function menuKeyHandler(e) {
+      if (e.key === 'ArrowUp') {
+        selIdx = (selIdx - 1 + osList.length) % osList.length;
+        renderMenu();
+        e.preventDefault();
+      } else if (e.key === 'ArrowDown') {
+        selIdx = (selIdx + 1) % osList.length;
+        renderMenu();
+        e.preventDefault();
+      } else if (e.key === 'Enter') {
+        document.removeEventListener('keydown', menuKeyHandler);
+        launchSelected();
+        e.preventDefault();
+      } else if (e.key === 'Escape') {
+        document.removeEventListener('keydown', menuKeyHandler);
+        overlay.remove();
+        bootMenuActive = false;
+        scheduleBiosEnd();
+        e.preventDefault();
+      }
+    }
+    document.addEventListener('keydown', menuKeyHandler);
   }
 
   document.addEventListener('keydown', biosKeyHandler);
@@ -156,10 +337,11 @@ function showBiosSetup(onExit) {
       { label: 'Quick POST',      value: 'Disabled',        editable: true, options: ['Enabled','Disabled'] },
     ],
     Security: [
-      { label: 'Supervisor Pass', value: 'puk1234',         editable: false },
-      { label: 'User Password',   value: '********',        editable: false },
-      { label: 'Gas Lock',        value: 'Off',             editable: true, options: ['On','Off'] },
-      { label: 'Chassis Intrusion','value': 'Ignore it',    editable: false },
+      { label: 'Supervisor Pass', value: '', action: 'supervisor_pass', editable: true },
+      { label: 'Supervisor Enabled', value: 'Disabled', editable: true, options: ['Disabled','Enabled'] },
+      { label: 'User Password', value: '', action: 'user_pass', editable: true },
+      { label: 'User Pass Enabled', value: 'Disabled', editable: true, options: ['Disabled','Enabled'] },
+      { label: 'Gas Lock', value: 'Off', editable: true, options: ['On','Off'] },
     ],
     Exit: [
       { label: 'Save & Exit Setup',      value: '', action: 'save', editable: true },
@@ -180,9 +362,60 @@ function showBiosSetup(onExit) {
     _bset('Boot',     'Quick POST',       bs.quickPost ? 'Enabled' : 'Disabled');
     _bset('Boot',     '1st Boot Device',  bs.bootDevice1      || 'Floppy (💾)');
     _bset('Security', 'Gas Lock',         bs.gasLock          || 'Off');
+    _bset('Security', 'Supervisor Enabled', bs.supervisorPassEnabled ? 'Enabled' : 'Disabled');
+    _bset('Security', 'User Pass Enabled',  bs.userPassEnabled ? 'Enabled' : 'Disabled');
+    var spItem = pages['Security'].find(function(i){ return i.label === 'Supervisor Pass'; });
+    if (spItem) spItem.value = bs.supervisorPass ? '****' : '(не задан)';
+    var upItem = pages['Security'].find(function(i){ return i.label === 'User Password'; });
+    if (upItem) upItem.value = bs.userPass ? '****' : '(не задан)';
   } catch(e) {}
 
   var rowIdx = 0;
+
+  function showBiosPasswordInput(title, currentValue, callback) {
+    var sub = document.createElement('div');
+    sub.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:2;';
+    // Pseudo-graphic BIOS-style box using box-drawing chars
+    var label = title + (currentValue ? ' [задан]' : ' [не задан]');
+    sub.innerHTML =
+      '<div style="background:#00007b;color:#aaa;font-family:\'Courier New\',monospace;font-size:13px;min-width:360px;border:none;">' +
+        // top border
+        '<div style="color:#aaa">┌──────────────────────────────────────────┐</div>' +
+        '<div style="color:#aaa">│  <span style="background:#aaa;color:#00007b;padding:0 4px;font-weight:bold">' + label + '</span>               │</div>' +
+        '<div style="color:#aaa">├──────────────────────────────────────────┤</div>' +
+        '<div style="color:#aaa">│                                          │</div>' +
+        '<div style="color:#aaa">│  Enter Password:                         │</div>' +
+        '<div style="color:#aaa;display:flex;align-items:center">│  <input type="password" id="bios-pass-sub-input" ' +
+          'style="width:280px;background:#000080;border:none;border-bottom:1px solid #0ff;color:#0ff;font-family:\'Courier New\',monospace;font-size:13px;padding:1px 4px;outline:none;" ' +
+          'placeholder="">                    │</div>' +
+        '<div style="color:#aaa">│                                          │</div>' +
+        '<div style="color:#aaa">│  (Leave empty to remove password)        │</div>' +
+        '<div style="color:#aaa">│                                          │</div>' +
+        '<div style="color:#aaa;display:flex;gap:0">│    <span id="bios-pass-sub-ok" style="background:#aaa;color:#00007b;padding:0 8px;cursor:pointer;font-weight:bold;border:1px solid #fff"> OK </span>   <span id="bios-pass-sub-cancel" style="background:#00007b;color:#aaa;padding:0 8px;cursor:pointer;border:1px solid #aaa"> Cancel </span>                      │</div>' +
+        '<div style="color:#aaa">└──────────────────────────────────────────┘</div>' +
+      '</div>';
+    overlay.appendChild(sub);
+    var inp = sub.querySelector('#bios-pass-sub-input');
+    if (inp) inp.focus();
+
+    function done(val) {
+      sub.remove();
+      document.addEventListener('keydown', onKey);
+      callback(val);
+    }
+    document.removeEventListener('keydown', onKey);
+    sub.querySelector('#bios-pass-sub-ok').addEventListener('click', function() {
+      done(inp ? inp.value : null);
+    });
+    sub.querySelector('#bios-pass-sub-cancel').addEventListener('click', function() {
+      done(null);
+    });
+    sub.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { done(inp ? inp.value : null); e.preventDefault(); }
+      else if (e.key === 'Escape') { done(null); e.preventDefault(); }
+      e.stopPropagation();
+    });
+  }
 
   function render() {
     var page = pages[tabs[tabIdx]];
@@ -238,6 +471,26 @@ function showBiosSetup(onExit) {
     else if (e.key === 'ArrowLeft') { tabIdx = (tabIdx - 1 + tabs.length) % tabs.length; rowIdx = 0; render(); }
     else if (e.key === 'Enter') {
       var item = page[rowIdx];
+      if (item.action === 'supervisor_pass') {
+        showBiosPasswordInput('Supervisor Password', _biosSet.supervisorPass, function(val) {
+          if (val !== null) {
+            _biosSet.supervisorPass = val;
+            page[rowIdx].value = val ? '****' : '(не задан)';
+            render();
+          }
+        });
+        return;
+      }
+      if (item.action === 'user_pass') {
+        showBiosPasswordInput('User Password', _biosSet.userPass, function(val) {
+          if (val !== null) {
+            _biosSet.userPass = val;
+            page[rowIdx].value = val ? '****' : '(не задан)';
+            render();
+          }
+        });
+        return;
+      }
       if (item.action === 'save') {
         applyBiosSettings(pages);
         biosSaveRestart(cleanup);
@@ -293,7 +546,11 @@ var _biosSet = {
   cpuCache: 'Enabled',
   fartCoprocessor: 'Enabled',
   bootDevice1: 'Floppy (💾)',
-  gasLock: 'Off'
+  gasLock: 'Off',
+  supervisorPass: '',
+  supervisorPassEnabled: false,
+  userPass: '',
+  userPassEnabled: false
 };
 
 function applyBiosSettings(pages) {
@@ -306,6 +563,8 @@ function applyBiosSettings(pages) {
     _biosSet.fartCoprocessor  = pages.Advanced.find(function(i){ return i.label==='Fart Coprocessor'; }).value;
     _biosSet.bootDevice1      = pages.Boot.find(function(i){ return i.label==='1st Boot Device'; }).value;
     _biosSet.gasLock          = pages.Security.find(function(i){ return i.label==='Gas Lock'; }).value;
+    _biosSet.supervisorPassEnabled = pages.Security.find(function(i){ return i.label==='Supervisor Enabled'; }).value === 'Enabled';
+    _biosSet.userPassEnabled  = pages.Security.find(function(i){ return i.label==='User Pass Enabled'; }).value === 'Enabled';
     try { localStorage.setItem('pukdos_bios', JSON.stringify(_biosSet)); } catch(e){}
   } catch(e) {}
 }

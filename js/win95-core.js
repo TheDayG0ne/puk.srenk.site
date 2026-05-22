@@ -327,7 +327,57 @@ var _vfs = (function() {
   // Init default structure
   function _init() {
     var data = _load();
+    // Migrate: rename 'Windows' → 'PUKDOS95' in existing saves
+    if (data['C:'] && data['C:'].children && data['C:'].children['Windows'] && !data['C:'].children['PUKDOS95']) {
+      data['C:'].children['PUKDOS95'] = data['C:'].children['Windows'];
+      delete data['C:'].children['Windows'];
+      _save(data);
+    }
     if (!data['C:']) {
+      var sysFiles = {};
+      ['PUKDOS.SYS','COMMAND.PUK','IO.SYS','CONFIG.PUK','AUTOEXEC.PUK','WIN.PUK','WINPUK.INI','SYSTEM.DAT','USER.DAT','DESKTOP.INI'].forEach(function(f){
+        sysFiles[f] = { type:'file', content:'; Системный файл ПУКДОС 95\r\n; ' + f + '\r\n; ООО ПУКПРОМ, 1995–' + new Date().getFullYear() + '\r\n', modified: new Date().toISOString() };
+      });
+      var systemDir = {};
+      ['GDI.PUK','USER.PUK','KERNEL32.PUK','SHELL32.PUK','COMCTL32.PUK','PUKCOM.DLL','PUKMM.DLL','PUKNET.DLL','PUKPNP.DLL','MSVCRT.PUK'].forEach(function(f){
+        systemDir[f] = { type:'file', content:'; Системная библиотека ПУКДОС\r\n; ' + f, modified: new Date().toISOString() };
+      });
+      var driverDir = {};
+      ['PUKDISP.DRV','PUKSND.DRV','PUKMOUSE.DRV','PUKNET.DRV','PUKPRINT.DRV'].forEach(function(f){
+        driverDir[f] = { type:'file', content:'; Драйвер устройства ПУКДОС\r\n; ' + f, modified: new Date().toISOString() };
+      });
+      var fontsDir = {};
+      ['ARIAL.PUF','TIMES.PUF','COURIER.PUF','COMIC.PUF','PUKFONT.PUF'].forEach(function(f){
+        fontsDir[f] = { type:'file', content:'; Шрифт ПУКДОС 95\r\n; ' + f, modified: new Date().toISOString() };
+      });
+
+      // Программы folders
+      var progFiles = {};
+      var appDefs = {
+        'Блокнот':        ['NOTEPAD.EXE','NOTEPAD.HLP','README.PUK'],
+        'Пейнт':          ['PUKPAINT.EXE','PUKPAINT.HLP','BRUSHES.DAT'],
+        'Калькулятор':    ['CALC.EXE','CALC.HLP'],
+        'Медиаплеер':     ['PUKMEDIA.EXE','CODECS.DAT','PUKMEDIA.HLP'],
+        'ПукПлорер':      ['IEPUK.EXE','IEPUK.HLP','COOKIES.DAT','FAVORITES.DAT'],
+        'ПУКДУМ':         ['DOOM.EXE','DOOM1.WAD','DOOMDATA.PUK','DOOM.HLP'],
+        'Сапёр':          ['WINMINE.EXE','WINMINE.HLP'],
+        'Пасьянс':        ['SOL.EXE','SOL.HLP','CARDS.DLL'],
+        'Пук-Чат 2000':   ['PUKCHAT.EXE','PUKCHAT.HLP','CONTACTS.DAT'],
+        'Пук-Почта':      ['PUKMAIL.EXE','PUKMAIL.HLP','INBOX.DAT'],
+        'ПукОфис 95':     ['PUKWORD.EXE','PUKXCEL.EXE','PUKPREZ.EXE','OFFICE95.HLP','LICENSE.TXT'],
+        'Пук-Про':        ['PUKPRO.EXE','PUKPRO.HLP'],
+        'ПукЭнциклопедия':['PUKENCY.EXE','PUKENCY.DAT','PUKENCY.HLP'],
+        'Газосим 3000':   ['GAZSIM.EXE','GAZSIM.DAT','GAZSIM.HLP'],
+        'ПукПром':        ['PUKPROM.EXE','PUKPROM.HLP','ABOUTUS.TXT']
+      };
+      Object.keys(appDefs).forEach(function(appName) {
+        var children = {};
+        appDefs[appName].forEach(function(f){
+          children[f] = { type:'file', content:'; ' + appName + ' — ' + f + '\r\n; Установлено: ' + new Date().toLocaleDateString('ru-RU'), modified: new Date().toISOString() };
+        });
+        progFiles[appName] = { type:'dir', children: children };
+      });
+
       data = {
         'C:': {
           type: 'dir',
@@ -335,14 +385,37 @@ var _vfs = (function() {
             'Мои документы': { type: 'dir', children: {} },
             'Рабочий стол':  { type: 'dir', children: {} },
             'Корзина':       { type: 'dir', children: {} },
-            'Программы':     { type: 'dir', children: {} },
-            'Windows':       { type: 'dir', children: {
-              'System': { type: 'dir', children: {} }
-            }}
+            'Программы':     { type: 'dir', children: progFiles },
+            'PUKDOS95': { type: 'dir', children: Object.assign({}, sysFiles, {
+              'System':  { type: 'dir', children: systemDir },
+              'Drivers': { type: 'dir', children: driverDir },
+              'Fonts':   { type: 'dir', children: fontsDir },
+              'Temp':    { type: 'dir', children: {} },
+              'Logs':    { type: 'dir', children: {
+                'BOOT.LOG':   { type:'file', content:'[ПукДОС 95 Boot Log]\r\nЗагрузка: ' + new Date().toLocaleString('ru-RU') + '\r\nВсе пуки в норме.\r\n', modified: new Date().toISOString() },
+                'SYSTEM.LOG': { type:'file', content:'[ПукДОС 95 System Log]\r\nСистема запущена успешно.\r\n', modified: new Date().toISOString() }
+              }}
+            })}
           }
         }
       };
       _save(data);
+    } else {
+      // Ensure PUKDOS95 exists in old saves
+      if (!data['C:'].children['PUKDOS95']) {
+        data['C:'].children['PUKDOS95'] = { type: 'dir', children: {
+          'System':  { type: 'dir', children: {} },
+          'Drivers': { type: 'dir', children: {} },
+          'Fonts':   { type: 'dir', children: {} },
+          'Temp':    { type: 'dir', children: {} }
+        }};
+        _save(data);
+      }
+      // Ensure Программы has app subfolders
+      if (!data['C:'].children['Программы']) {
+        data['C:'].children['Программы'] = { type: 'dir', children: {} };
+        _save(data);
+      }
     }
     return data;
   }
@@ -446,6 +519,47 @@ var _vfs = (function() {
         api.writeFile('C:/Корзина/' + name, content);
       }
       api.deleteFile(path);
+    },
+
+    emptyTrash: function() {
+      var items = api.listDir('C:/Корзина/') || [];
+      items.forEach(function(item) {
+        api.deleteFile('C:/Корзина/' + item.name);
+      });
+    },
+
+    restoreFromTrash: function(name) {
+      var src = 'C:/Корзина/' + name;
+      var content = api.readFile(src);
+      if (content !== null) {
+        api.writeFile('C:/Мои документы/' + name, content);
+        api.deleteFile(src);
+        return true;
+      }
+      return false;
+    },
+
+    deleteDir: function(path) {
+      // Recursively delete directory
+      var items = api.listDir(path + '/') || api.listDir(path) || [];
+      items.forEach(function(item) {
+        var childPath = path.replace(/\/?$/, '/') + item.name;
+        if (item.type === 'dir') api.deleteDir(childPath);
+        else api.deleteFile(childPath);
+      });
+      // Now remove the dir node itself
+      var parts = path.replace(/\/+$/, '').replace(/\\/g, '/').split('/').filter(Boolean);
+      var data = _load();
+      var node = data;
+      for (var i = 0; i < parts.length - 1; i++) {
+        var k = parts[i];
+        node = (i === 0) ? data[k] : (node && node.children && node.children[k]);
+        if (!node) return false;
+      }
+      var dname = parts[parts.length - 1];
+      var parent = (parts.length === 1) ? data : (node && node.children || {});
+      if (parent[dname]) { delete parent[dname]; _save(data); }
+      return true;
     },
 
     exists: function(path) {
@@ -565,7 +679,27 @@ function win95balloon(msg, icon, title) {
       '<span class="w95balloon-close" title="Закрыть">✕</span>' +
     '</div>' +
     '<div class="w95balloon-body">' + msg + '</div>';
+  // Remove fixed CSS positioning - we'll set it dynamically
+  el.style.position = 'fixed';
   document.body.appendChild(el);
+
+  // Position above systray after layout
+  requestAnimationFrame(function() {
+    // Try to anchor to systray clock or notification icon
+    var anchor = document.getElementById('systray-balloon-icon') || document.getElementById('systray-time');
+    if (anchor) {
+      var rect = anchor.getBoundingClientRect();
+      var bw = el.offsetWidth || 200;
+      var bh = el.offsetHeight || 60;
+      var left = Math.max(4, rect.right - bw);
+      var top = rect.top - bh - 6;
+      el.style.right = '';
+      el.style.bottom = '';
+      el.style.left = left + 'px';
+      el.style.top = top + 'px';
+    }
+  });
+
   playWin95Sound('balloon');
 
   function dismissBalloon() {
@@ -607,5 +741,93 @@ function win95toast(msg, icon, title) {
   } else {
     win95balloon(msg, icon, title);
   }
+}
+
+// Internal input dialog (replaces browser prompt())
+function win95input(title, label, defaultValue, onOk) {
+  var id = 'w95input_' + Date.now();
+  var safeDefault = (defaultValue || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+  createWin({
+    id: id, title: title, icon: '✏️', w: 320, h: 140, resize: false,
+    content:
+      '<div style="padding:12px 16px">' +
+        '<div style="font-size:12px;margin-bottom:8px">' + (label || 'Введите значение:') + '</div>' +
+        '<input type="text" id="w95input_field_' + id + '" value="' + safeDefault + '" ' +
+          'style="width:100%;box-sizing:border-box;border:2px inset #808080;padding:3px 5px;font-family:inherit;font-size:12px;outline:none" ' +
+          'onkeydown="if(event.key===\'Enter\')document.getElementById(\'w95input_ok_' + id + '\').click()">' +
+        '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px">' +
+          '<button class="w-btn" id="w95input_ok_' + id + '" style="min-width:70px" ' +
+            'onclick="(function(){var v=document.getElementById(\'w95input_field_' + id + '\').value;closeWin(\'' + id + '\');if(window[\'_w95input_cb_' + id + '\'])window[\'_w95input_cb_' + id + '\'](v);})()">OK</button>' +
+          '<button class="w-btn" style="min-width:70px" onclick="closeWin(\'' + id + '\')">Отмена</button>' +
+        '</div>' +
+      '</div>',
+    afterOpen: function() {
+      var inp = document.getElementById('w95input_field_' + id);
+      if (inp) { inp.focus(); inp.select(); }
+    }
+  });
+  window['_w95input_cb_' + id] = onOk;
+}
+
+// Internal confirm dialog
+function win95confirm(msg, onYes, onNo) {
+  var id = 'w95confirm_' + Date.now();
+  createWin({
+    id: id, title: 'Подтверждение', icon: '❓', w: 320, h: 150, resize: false,
+    content:
+      '<div style="padding:16px;display:flex;gap:12px;align-items:flex-start">' +
+        '<div style="font-size:32px;flex-shrink:0">❓</div>' +
+        '<div style="font-size:12px;line-height:1.6">' + msg + '</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;justify-content:center;padding:0 16px 14px">' +
+        '<button class="w-btn" style="min-width:70px" onclick="closeWin(\'' + id + '\');if(window[\'_w95conf_y_' + id + '\'])window[\'_w95conf_y_' + id + '\']()">Да</button>' +
+        '<button class="w-btn" style="min-width:70px" onclick="closeWin(\'' + id + '\');if(window[\'_w95conf_n_' + id + '\'])window[\'_w95conf_n_' + id + '\']()">Нет</button>' +
+        '<button class="w-btn" style="min-width:70px" onclick="closeWin(\'' + id + '\')">Отмена</button>' +
+      '</div>'
+  });
+  window['_w95conf_y_' + id] = onYes;
+  window['_w95conf_n_' + id] = onNo;
+}
+
+// File picker dialog - shows files in a VFS path and calls callback(fullPath, name)
+function win95filePicker(startPath, onSelect) {
+  var id = 'w95filepicker_' + Date.now();
+  var currentPickPath = startPath || 'C:/Мои документы';
+
+  function renderPickList() {
+    var list = document.getElementById('w95fp_list_' + id);
+    if (!list) return;
+    var items = (_vfs.listDir(currentPickPath) || []).filter(function(f){ return f.type === 'file'; });
+    list.innerHTML = items.length === 0
+      ? '<div style="color:#808080;padding:8px;text-align:center">Нет файлов</div>'
+      : items.map(function(f) {
+          var safeName = f.name.replace(/'/g, '&#39;');
+          return '<div class="win-dd-item" style="padding:4px 8px;font-size:11px;cursor:pointer" ' +
+            'onclick="document.getElementById(\'w95fp_name_' + id + '\').value=\'' + safeName + '\'" ' +
+            'ondblclick="document.getElementById(\'w95fp_ok_' + id + '\').click()">' +
+            '📄 ' + f.name + '</div>';
+        }).join('');
+  }
+
+  createWin({
+    id: id, title: 'Открыть файл', icon: '📂', w: 340, h: 260, resize: false,
+    content:
+      '<div style="padding:8px;display:flex;flex-direction:column;height:100%">' +
+        '<div style="font-size:11px;margin-bottom:4px;color:#808080">Папка: ' + currentPickPath + '</div>' +
+        '<div id="w95fp_list_' + id + '" style="flex:1;overflow-y:auto;border:2px inset #808080;background:#fff;margin-bottom:8px"></div>' +
+        '<div style="display:flex;gap:4px;align-items:center;margin-bottom:8px">' +
+          '<span style="font-size:11px;white-space:nowrap">Имя файла:</span>' +
+          '<input type="text" id="w95fp_name_' + id + '" style="flex:1;border:2px inset #808080;padding:2px 5px;font-family:inherit;font-size:11px;outline:none" ' +
+            'onkeydown="if(event.key===\'Enter\')document.getElementById(\'w95fp_ok_' + id + '\').click()">' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;justify-content:center">' +
+          '<button class="w-btn" id="w95fp_ok_' + id + '" style="min-width:70px" ' +
+            'onclick="(function(){var n=document.getElementById(\'w95fp_name_' + id + '\').value.trim();if(!n)return;var p=\'' + currentPickPath + '/\'+n;closeWin(\'' + id + '\');if(window[\'_w95fp_cb_' + id + '\'])window[\'_w95fp_cb_' + id + '\'](p,n);})()">Открыть</button>' +
+          '<button class="w-btn" style="min-width:70px" onclick="closeWin(\'' + id + '\')">Отмена</button>' +
+        '</div>' +
+      '</div>',
+    afterOpen: function() { renderPickList(); }
+  });
+  window['_w95fp_cb_' + id] = onSelect;
 }
 
